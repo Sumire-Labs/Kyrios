@@ -109,7 +109,7 @@ class LoggingCog(commands.Cog):
         await self.bot.event_bus.emit_event("logger_setup", {
             "guild_id": guild_id,
             "channel_id": getattr(channel, 'id', None),
-            "setup_by": interaction.user.id
+            "setup_by": ctx.author.id
         })
 
     @commands.Cog.listener()
