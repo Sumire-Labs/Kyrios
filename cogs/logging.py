@@ -88,9 +88,17 @@ class LoggingCog(commands.Cog):
 
         self.log_channels[guild_id] = channel.id
 
+        # チャンネル名を安全に取得
+        channel_display = getattr(channel, 'mention', None)
+        if not channel_display:
+            if hasattr(channel, 'name'):
+                channel_display = getattr(channel, 'name', 'Unknown Channel')
+            else:
+                channel_display = f"チャンネルID: {channel.id}"
+
         embed = discord.Embed(
             title="📊 ログシステム設定完了",
-            description=f"このチャンネル ({getattr(channel, 'mention', channel.name if hasattr(channel, 'name') else 'Unknown')}) がログ出力チャンネルに設定されました。",
+            description=f"このチャンネル ({channel_display}) がログ出力チャンネルに設定されました。",
             color=discord.Color.green()
         )
         embed.add_field(
