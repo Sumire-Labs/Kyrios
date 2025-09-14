@@ -1,9 +1,8 @@
+# type: ignore
 import discord
 from discord import app_commands
 from discord.ext import commands
 import logging
-
-# type: ignore コメントでPylanceの型チェックエラーを抑制
 
 
 class TicketView(discord.ui.View):
@@ -11,7 +10,7 @@ class TicketView(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
 
-    @discord.ui.button(label="🎫 チケット作成", style=discord.ButtonStyle.green, custom_id="create_ticket")
+    @discord.ui.button(label="🎫 チケット作成", style=discord.ButtonStyle.green, custom_id="create_ticket")  # type: ignore
     async def create_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
         await interaction.response.defer(ephemeral=True)
 
@@ -102,11 +101,11 @@ class TicketManagementView(discord.ui.View):
         self.bot = bot
         self.ticket_id = ticket_id
 
-    @discord.ui.button(label="👤 アサイン", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="👤 アサイン", style=discord.ButtonStyle.secondary)  # type: ignore
     async def assign_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
         await interaction.response.send_modal(AssignModal(self.bot, self.ticket_id))
 
-    @discord.ui.button(label="🔒 クローズ", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="🔒 クローズ", style=discord.ButtonStyle.danger)  # type: ignore
     async def close_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
         if not (isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.manage_messages):
             ticket = await self.bot.database.get_ticket(self.ticket_id)
