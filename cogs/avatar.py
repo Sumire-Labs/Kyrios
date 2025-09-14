@@ -7,60 +7,11 @@ import aiohttp
 import asyncio
 from datetime import datetime
 from typing import Optional, Union, List, Tuple
-from io import BytesIO
-from PIL import Image
-import colorsys
 
 from di import DatabaseDep, EventBusDep, ConfigDep
 from dependency_injector.wiring import inject
 from database.models import AvatarHistoryType
-
-
-class AvatarAnalyzer:
-    """アバター画像の解析ユーティリティ"""
-
-    @staticmethod
-    async def analyze_image(image_url: str) -> dict:
-        """画像を分析して詳細情報を取得"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as response:
-                    if response.status != 200:
-                        return {}
-
-                    image_data = await response.read()
-                    image = Image.open(BytesIO(image_data))
-
-                    # 基本情報
-                    info = {
-                        'format': image.format.lower() if image.format else 'unknown',
-                        'size': len(image_data),
-                        'dimensions': image.size,
-                        'mode': image.mode,
-                        'animated': getattr(image, 'is_animated', False)
-                    }
-
-                    # 主要色抽出
-                    try:
-                        # 画像をリサイズして処理を高速化
-                        small_image = image.resize((50, 50))
-                        colors = small_image.getcolors(maxcolors=256)
-                        if colors:
-                            # 最も多く使われている色を取得
-                            dominant_color = max(colors, key=lambda x: x[0])
-                            rgb = dominant_color[1] if isinstance(dominant_color[1], tuple) else (128, 128, 128)
-                            if len(rgb) >= 3:
-                                info['dominant_color'] = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
-                            else:
-                                info['dominant_color'] = "#808080"
-                        else:
-                            info['dominant_color'] = "#808080"
-                    except Exception:
-                        info['dominant_color'] = "#808080"
-
-                    return info
-        except Exception:
-            return {}
+from utils.image_analyzer import ImageAnalyzer
 
 
 class AvatarDownloadView(discord.ui.View):
@@ -245,6 +196,7 @@ class AvatarCog(commands.Cog):
         self.event_bus = event_bus
         self.config = config
         self.logger = logging.getLogger(__name__)
+        self.image_analyzer = ImageAnalyzer()
 
     @app_commands.command(name="avatar", description="🖼️ ユーザーのアバターとバナーを高機能表示します")
     @app_commands.describe(user="アバターを表示するユーザー（省略時は自分）")
@@ -269,10 +221,10 @@ class AvatarCog(commands.Cog):
             banner_url = fetched_user.banner.with_size(1024).url if fetched_user.banner else None
 
             # 画像解析
-            avatar_info = await AvatarAnalyzer.analyze_image(avatar_url)
+            avatar_info = await self.image_analyzer.analyze_image(avatar_url)
             banner_info = {}
             if banner_url:
-                banner_info = await AvatarAnalyzer.analyze_image(banner_url)
+                banner_info = await self.image_analyzer.analyze_image(banner_url)
 
             # メインEmbed作成
             embed = discord.Embed(
