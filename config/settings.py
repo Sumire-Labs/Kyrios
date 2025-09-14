@@ -13,12 +13,13 @@ class Settings:
 
     def _load_config(self) -> dict:
         try:
-            if hasattr(tomllib, 'load'):
-                # toml library
+            # Python 3.11+ built-in tomllib (binary mode)
+            if not hasattr(tomllib, 'loads') or hasattr(tomllib, 'load'):
+                # toml library (text mode)
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     return tomllib.load(f)
             else:
-                # tomllib (Python 3.11+)
+                # tomllib (binary mode)
                 with open(self.config_path, "rb") as f:
                     return tomllib.load(f)
         except FileNotFoundError:
