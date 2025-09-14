@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 try:
     import tomllib
 except ImportError:
@@ -9,17 +9,17 @@ from pathlib import Path
 class Settings:
     def __init__(self, config_path: str = "config.toml"):
         self.config_path = Path(config_path)
-        self.config = self._load_config()
+        self.config: Dict[str, Any] = self._load_config()
 
-    def _load_config(self) -> dict:
+    def _load_config(self) -> Dict[str, Any]:
         try:
-            # Python 3.11+ built-in tomllib (binary mode)
-            if not hasattr(tomllib, 'loads') or hasattr(tomllib, 'load'):
+            # Check if we're using the toml library (has loads method) or tomllib
+            if hasattr(tomllib, 'loads'):
                 # toml library (text mode)
                 with open(self.config_path, "r", encoding="utf-8") as f:
                     return tomllib.load(f)
             else:
-                # tomllib (binary mode)
+                # Python 3.11+ tomllib (binary mode)
                 with open(self.config_path, "rb") as f:
                     return tomllib.load(f)
         except FileNotFoundError:
@@ -28,7 +28,7 @@ class Settings:
             raise ValueError(f"Invalid TOML in config file: {e}")
 
     def reload_config(self) -> None:
-        self.config = self._load_config()
+        self.config: Dict[str, Any] = self._load_config()
 
     @property
     def bot_token(self) -> str:
