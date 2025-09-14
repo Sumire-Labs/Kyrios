@@ -52,25 +52,48 @@ poetry run python bot.py
 Kyrios/
 ├── bot.py              # メインBOTファイル
 ├── config.toml         # 設定ファイル
+├── config.toml.example # 設定ファイルテンプレート
 ├── pyproject.toml      # Poetry設定ファイル
+├── test_bot.py         # BOTテスト・開発用スクリプト
 ├── kyrios/             # Pythonパッケージ
 │   └── __init__.py
 ├── config/
-│   └── settings.py     # 設定管理
+│   ├── __init__.py
+│   └── settings.py     # TOML設定管理
 ├── database/
-│   ├── models.py       # データモデル
-│   └── manager.py      # DB管理
-├── patterns/           # デザインパターン
-│   ├── command.py
-│   ├── factory.py
-│   └── observer.py
-├── cogs/               # 機能別モジュール
-│   ├── admin.py
-│   ├── tickets.py
-│   └── logging.py
-├── events/             # イベントハンドラー
-├── utils/              # ユーティリティ
-└── di/                 # 依存性注入
+│   ├── __init__.py
+│   ├── models.py       # SQLModelデータモデル
+│   └── manager.py      # データベース操作管理
+├── patterns/           # デザインパターン実装
+│   ├── __init__.py
+│   ├── command.py      # Command Pattern
+│   ├── factory.py      # Factory Pattern
+│   └── observer.py     # Observer Pattern & EventBus
+├── cogs/               # Discord.py Cogs (機能別モジュール)
+│   ├── __init__.py
+│   ├── ping.py         # システム情報・Pingコマンド
+│   ├── avatar.py       # アバター表示・解析システム
+│   ├── tickets.py      # チケットシステム
+│   └── logging.py      # ログシステム
+├── events/             # カスタムイベントハンドラー
+│   └── __init__.py
+├── utils/              # 共通ユーティリティ
+│   ├── __init__.py
+│   └── image_analyzer.py # 画像解析・メタデータ抽出
+├── di/                 # 依存性注入システム
+│   ├── __init__.py
+│   └── container.py    # DIコンテナ設定
+└── docs/               # 包括的ドキュメント
+    ├── ARCHITECTURE.md
+    ├── API_REFERENCE.md
+    ├── CONFIGURATION.md
+    ├── CONTRIBUTING.md
+    ├── DATABASE.md
+    ├── DEPENDENCY_INJECTION.md
+    ├── DEPLOYMENT.md
+    ├── FEATURE_DEVELOPMENT.md
+    ├── TESTING.md
+    └── TROUBLESHOOTING.md
 ```
 
 ### デザインパターン
