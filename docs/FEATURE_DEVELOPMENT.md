@@ -417,10 +417,30 @@ async def test_full_workflow():
 
 ## ユーティリティ関数
 
+### 共通ユーティリティの活用
+
+Kyriosでは`utils/`ディレクトリに再利用可能なユーティリティを配置しています。
+
+#### 画像解析ユーティリティ
+```python
+# utils/image_analyzer.py の使用例
+from utils.image_analyzer import ImageAnalyzer
+
+class NewFeatureCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.image_analyzer = ImageAnalyzer()
+
+    async def process_image(self, image_url: str):
+        # ノンブロッキング画像解析（asyncio.to_thread使用）
+        info = await self.image_analyzer.analyze_image(image_url)
+        return info.get('dominant_color', '#808080')
+```
+
 ### よく使う関数パターン
 
 ```python
-# utils/helpers.py
+# utils/helpers.py（将来の拡張例）
 import re
 from typing import Optional
 from datetime import datetime, timedelta
@@ -552,6 +572,73 @@ class FeatureMetrics:
         )
 
         return embed
+```
+
+## パフォーマンス最適化ガイド
+
+### 非同期処理のベストプラクティス
+
+#### CPU集約的処理の最適化
+```python
+import asyncio
+
+class OptimizedCog(commands.Cog):
+    async def heavy_processing(self, data):
+        # ❌ ブロッキング（イベントループを停止）
+        # result = expensive_sync_function(data)
+
+        # ✅ ノンブロッキング（推奨）
+        result = await asyncio.to_thread(expensive_sync_function, data)
+        return result
+```
+
+#### 画像処理の最適化例
+```python
+from utils.image_analyzer import ImageAnalyzer
+
+async def process_multiple_images(self, image_urls: list[str]):
+    analyzer = ImageAnalyzer()
+
+    # ❌ 逐次処理（遅い）
+    # results = []
+    # for url in image_urls:
+    #     result = await analyzer.analyze_image(url)
+    #     results.append(result)
+
+    # ✅ 並行処理（高速）
+    tasks = [analyzer.analyze_image(url) for url in image_urls]
+    results = await asyncio.gather(*tasks)
+    return results
+```
+
+#### メモリ効率的な実装
+```python
+# 大量のデータ処理時はチャンク化
+async def process_large_dataset(self, data_list: list):
+    chunk_size = 10
+    for i in range(0, len(data_list), chunk_size):
+        chunk = data_list[i:i + chunk_size]
+        await asyncio.gather(*[self.process_item(item) for item in chunk])
+        # 各チャンク後にイベントループに制御を戻す
+        await asyncio.sleep(0)
+```
+
+### パフォーマンス監視
+
+```python
+import time
+
+async def monitor_performance(self, operation_name: str, operation):
+    start_time = time.time()
+    try:
+        result = await operation()
+        execution_time = time.time() - start_time
+        self.logger.info(f"{operation_name} completed in {execution_time:.3f}s")
+        return result
+    except Exception as e:
+        execution_time = time.time() - start_time
+        self.logger.error(f"{operation_name} failed after {execution_time:.3f}s: {e}")
+        raise
 ```
 
 この機能開発ガイドにより、一貫性のある高品質な機能を効率的に開発できます。

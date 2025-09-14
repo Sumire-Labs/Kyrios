@@ -17,9 +17,12 @@ Kyrios/
 ├── bot.py                  # メインBOTエントリーポイント
 ├── pyproject.toml          # Poetry設定ファイル
 ├── config.toml             # BOT設定ファイル
+├── config.toml.example     # 設定ファイルテンプレート
+├── test_bot.py             # BOTテスト・開発用スクリプト
 ├── kyrios/                 # Pythonパッケージ
 │   └── __init__.py
 ├── config/
+│   ├── __init__.py
 │   └── settings.py         # TOML設定ファイルの読み込み
 ├── di/
 │   ├── __init__.py
@@ -32,18 +35,30 @@ Kyrios/
 │   ├── __init__.py
 │   ├── command.py          # Command Pattern 実装
 │   ├── factory.py          # Factory Pattern 実装
-│   └── observer.py         # Observer Pattern 実装
+│   └── observer.py         # Observer Pattern & EventBus 実装
 ├── cogs/
 │   ├── __init__.py
-│   ├── admin.py            # 管理コマンド（ping等）
+│   ├── ping.py             # システム情報・Pingコマンド
+│   ├── avatar.py           # アバター表示・解析システム
 │   ├── tickets.py          # チケットシステム
 │   └── logging.py          # ログシステム
 ├── events/
 │   ├── __init__.py
 │   └── handlers.py         # カスタムイベントハンドラー
-└── utils/
-    ├── __init__.py
-    └── helpers.py          # ユーティリティ関数
+├── utils/                  # 共通ユーティリティ
+│   ├── __init__.py
+│   └── image_analyzer.py   # 画像解析・メタデータ抽出
+└── docs/                   # 包括的ドキュメント
+    ├── ARCHITECTURE.md
+    ├── API_REFERENCE.md
+    ├── CONFIGURATION.md
+    ├── CONTRIBUTING.md
+    ├── DATABASE.md
+    ├── DEPENDENCY_INJECTION.md
+    ├── DEPLOYMENT.md
+    ├── FEATURE_DEVELOPMENT.md
+    ├── TESTING.md
+    └── TROUBLESHOOTING.md
 ```
 
 ## デザインパターン実装
@@ -219,6 +234,8 @@ factory.register_cog("auto_mod", AutoModerationCog)
 - **全面async/await**: ブロッキング処理の排除
 - **並行処理**: 複数処理の同時実行
 - **リソース管理**: 適切なコネクション管理
+- **asyncio.to_thread**: CPU集約的処理（画像解析等）のノンブロッキング実行
+- **スレッドプール活用**: 同期ライブラリの非同期統合
 
 ### メモリ効率
 - **Singleton Pattern**: 重いオブジェクトの再利用
