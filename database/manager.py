@@ -5,7 +5,8 @@ from sqlmodel import SQLModel, create_engine, Session, select
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
-from .models import Ticket, Log, GuildSettings, TicketMessage, TicketStatus, LogType
+from .models import (Ticket, Log, GuildSettings, TicketMessage, TicketStatus, LogType,
+                      AvatarHistory, UserAvatarStats, AvatarHistoryType)
 
 
 class DatabaseManager:
@@ -163,6 +164,63 @@ class DatabaseManager:
                 TicketMessage.ticket_id == ticket_id
             ).order_by(TicketMessage.timestamp)
             return list(session.exec(statement))
+
+    # Avatar History methods
+    async def record_avatar_change(self, user_id: int, history_type: AvatarHistoryType,
+                                 old_avatar_url: Optional[str] = None,
+                                 new_avatar_url: Optional[str] = None,
+                                 guild_id: Optional[int] = None,
+                                 dominant_color: Optional[str] = None,
+                                 image_format: Optional[str] = None,
+                                 image_size: Optional[int] = None) -> AvatarHistory:
+        with self.get_session() as session:
+            history = AvatarHistory(
+                user_id=user_id,
+                guild_id=guild_id,
+                history_type=history_type,
+                old_avatar_url=old_avatar_url,
+                new_avatar_url=new_avatar_url,
+                dominant_color=dominant_color,
+                image_format=image_format,
+                image_size=image_size
+            )
+            session.add(history)
+            session.commit()
+            session.refresh(history)
+
+            # Update user stats
+            await self._update_user_avatar_stats(user_id, history_type, session)
+            self.logger.info(f"Recorded avatar change for user {user_id}")
+            return history
+
+    async def get_avatar_history(self, user_id: int, limit: int = 10) -> List[AvatarHistory]:
+        with self.get_session() as session:
+            statement = select(AvatarHistory).where(
+                AvatarHistory.user_id == user_id
+            ).order_by(desc(AvatarHistory.timestamp)).limit(limit)
+            return list(session.exec(statement))
+
+    async def get_user_avatar_stats(self, user_id: int) -> Optional[UserAvatarStats]:
+        with self.get_session() as session:
+            statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
+            return session.exec(statement).first()
+
+    async def _update_user_avatar_stats(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
+        statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
+        stats = session.exec(statement).first()
+
+        if not stats:
+            stats = UserAvatarStats(user_id=user_id)
+            session.add(stats)
+
+        if history_type in [AvatarHistoryType.AVATAR_CHANGE, AvatarHistoryType.SERVER_AVATAR_CHANGE]:
+            stats.total_avatar_changes += 1
+            stats.last_avatar_change = datetime.now()
+        elif history_type == AvatarHistoryType.BANNER_CHANGE:
+            stats.total_banner_changes += 1
+            stats.last_banner_change = datetime.now()
+
+        session.commit()
 
     # Utility methods
     async def cleanup_old_logs(self, days: int = 30) -> int:

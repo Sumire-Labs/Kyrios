@@ -60,7 +60,8 @@ class KyriosBot(commands.Bot):
         cog_files: list[str] = [
             "cogs.ping",
             "cogs.tickets",
-            "cogs.logging"
+            "cogs.logging",
+            "cogs.avatar"
         ]
 
         for cog_file in cog_files:
@@ -137,7 +138,7 @@ class KyriosBot(commands.Bot):
 async def main():
     # DIコンテナを初期化・ワイヤリング
     container.init_resources()
-    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging"])
+    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar"])
 
     bot = None
     try:

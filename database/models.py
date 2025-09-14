@@ -89,3 +89,34 @@ class TicketMessage(SQLModel, table=True):
     content: str
     timestamp: datetime = Field(default_factory=datetime.now)
     is_system_message: bool = False
+
+
+class AvatarHistoryType(str, Enum):
+    AVATAR_CHANGE = "avatar_change"
+    BANNER_CHANGE = "banner_change"
+    SERVER_AVATAR_CHANGE = "server_avatar_change"
+
+
+class AvatarHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int
+    guild_id: Optional[int] = None  # None for global avatar/banner
+    history_type: AvatarHistoryType
+    old_avatar_url: Optional[str] = None
+    new_avatar_url: Optional[str] = None
+    dominant_color: Optional[str] = None  # Hex color code
+    image_format: Optional[str] = None  # png, jpg, gif, webp
+    image_size: Optional[int] = None  # File size in bytes
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class UserAvatarStats(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(unique=True)
+    total_avatar_changes: int = 0
+    total_banner_changes: int = 0
+    first_seen: datetime = Field(default_factory=datetime.now)
+    last_avatar_change: Optional[datetime] = None
+    last_banner_change: Optional[datetime] = None
+    most_used_format: Optional[str] = None
+    average_change_frequency: Optional[float] = None  # Days between changes
