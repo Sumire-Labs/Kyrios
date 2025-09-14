@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from sqlmodel import SQLModel, Field, create_engine, Session
+from sqlmodel import SQLModel, Field
 from enum import Enum
 
 
