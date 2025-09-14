@@ -2,9 +2,11 @@
 画像解析ユーティリティモジュール
 
 Discord画像（アバター、バナー、絵文字等）の解析機能を提供
+asyncio.to_thread を使用してイベントループをブロックしない設計
 """
 
 import aiohttp
+import asyncio
 from PIL import Image
 from io import BytesIO
 from typing import Dict, Any, Optional
@@ -47,30 +49,34 @@ class ImageAnalyzer:
             self.logger.error(f"Image analysis failed for {image_url}: {e}")
             return {}
 
+    def _analyze_image_data_sync(self, image_data: bytes) -> Dict[str, Any]:
+        """画像データから詳細情報を抽出（同期版 - スレッドプールで実行）"""
+        image = Image.open(BytesIO(image_data))
+
+        info = {
+            'format': image.format.lower() if image.format else 'unknown',
+            'size': len(image_data),
+            'dimensions': image.size,
+            'mode': image.mode,
+            'animated': getattr(image, 'is_animated', False)
+        }
+
+        # 主要色抽出（同期版）
+        info['dominant_color'] = self._extract_dominant_color_sync(image)
+
+        return info
+
     async def _analyze_image_data(self, image_data: bytes) -> Dict[str, Any]:
-        """画像データから詳細情報を抽出"""
+        """画像データから詳細情報を抽出（非同期版 - イベントループをブロックしない）"""
         try:
-            image = Image.open(BytesIO(image_data))
-
-            info = {
-                'format': image.format.lower() if image.format else 'unknown',
-                'size': len(image_data),
-                'dimensions': image.size,
-                'mode': image.mode,
-                'animated': getattr(image, 'is_animated', False)
-            }
-
-            # 主要色抽出
-            info['dominant_color'] = await self._extract_dominant_color(image)
-
-            return info
-
+            # 同期処理をスレッドプールで実行してイベントループをブロックしない
+            return await asyncio.to_thread(self._analyze_image_data_sync, image_data)
         except Exception as e:
             self.logger.error(f"Image data analysis failed: {e}")
             return {}
 
-    async def _extract_dominant_color(self, image: Image.Image) -> str:
-        """画像から主要色を抽出"""
+    def _extract_dominant_color_sync(self, image: Image.Image) -> str:
+        """画像から主要色を抽出（同期版 - スレッドプールで実行）"""
         try:
             # パフォーマンスのため小さくリサイズ
             small_image = image.resize((50, 50))
@@ -96,6 +102,15 @@ class ImageAnalyzer:
             else:
                 return "#808080"  # グレー（デフォルト）
 
+        except Exception as e:
+            self.logger.error(f"Color extraction failed: {e}")
+            return "#808080"
+
+    async def _extract_dominant_color(self, image: Image.Image) -> str:
+        """画像から主要色を抽出（非同期版 - イベントループをブロックしない）"""
+        try:
+            # 同期処理をスレッドプールで実行してイベントループをブロックしない
+            return await asyncio.to_thread(self._extract_dominant_color_sync, image)
         except Exception as e:
             self.logger.error(f"Color extraction failed: {e}")
             return "#808080"
