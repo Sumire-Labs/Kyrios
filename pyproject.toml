@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "kyrios"
+version = "0.1.0"
+description = "Kyrios - Advanced Discord Administration Bot"
+authors = ["s12kuma01"]
+readme = "README.md"
+packages = [{include = "kyrios"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+discord-py = "^2.4.0"
+sqlalchemy = "^2.0.36"
+sqlmodel = "^0.0.22"
+pydantic = "^2.10.3"
+pydantic-settings = "^2.6.1"
+toml = "^0.10.2"
+psutil = "^6.1.0"
+dependency-injector = "^4.42.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+black = "^24.10.0"
+flake8 = "^7.1.1"
+mypy = "^1.14.1"
+ruff = "^0.8.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+extend-select = ["E", "W", "F", "I", "N", "B", "A", "C4", "UP", "YTT"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+strict = true
