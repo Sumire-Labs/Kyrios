@@ -17,11 +17,11 @@ class Settings:
             if hasattr(tomllib, 'loads'):
                 # toml library (text mode)
                 with open(self.config_path, "r", encoding="utf-8") as f:
-                    return tomllib.load(f)
+                    return tomllib.load(f)  # type: ignore
             else:
                 # Python 3.11+ tomllib (binary mode)
                 with open(self.config_path, "rb") as f:
-                    return tomllib.load(f)
+                    return tomllib.load(f)  # type: ignore
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
         except Exception as e:
