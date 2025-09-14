@@ -47,14 +47,6 @@ class Container(containers.DeclarativeContainer):
     )
 
 
-def _setup_event_bus(event_bus: EventBus, logging_observer: LoggingObserver,
-                     metrics_observer: MetricsObserver) -> EventBus:
-    """イベントバスにオブザーバーを自動アタッチ"""
-    event_bus.attach(logging_observer)
-    event_bus.attach(metrics_observer)
-    return event_bus
-
-
 # DIコンテナのインスタンス
 container = Container()
 
