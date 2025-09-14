@@ -107,3 +107,4 @@ htmlcov/
 # Local development
 .vscode/settings.json
 .vscode/launch.json
+.claude
