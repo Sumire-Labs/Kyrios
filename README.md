@@ -97,10 +97,6 @@ level = "INFO"                # ログレベル
 file = "kyrios.log"          # ログファイルパス
 max_size = 10485760          # ログファイル最大サイズ
 
-[features]
-tickets = true               # チケット機能
-logger = true               # ログ機能
-auto_mod = false           # 自動モデレーション（未実装）
 ```
 
 ## データベース
@@ -111,38 +107,65 @@ auto_mod = false           # 自動モデレーション（未実装）
 - **guild_settings** - サーバー別設定
 - **ticket_messages** - チケット内メッセージ
 
-### 多サーバー対応
-各テーブルに`guild_id`を含めることで、複数サーバーでの利用に対応しています。
-
 ## 開発ドキュメント
 
 Kyriosの開発docsは以下のファイルです
 詳細な実装については、各ドキュメントをご参照ください。
 
-### 🏗️ [ARCHITECTURE.md](ARCHITECTURE.md)
+### 🏗️ [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - システム設計原則
 - プロジェクト構造詳細
 - デザインパターン実装
 
-### 💉 [DEPENDENCY_INJECTION.md](DEPENDENCY_INJECTION.md)
+### 💉 [DEPENDENCY_INJECTION.md](docs/DEPENDENCY_INJECTION.md)
 - DIシステムの使用方法
 - コンテナ設定
 - 依存関係の管理
 
-### 📊 [DATABASE.md](DATABASE.md)
+### 📊 [DATABASE.md](docs/DATABASE.md)
 - データベース設計
 - モデル定義
 - クエリ操作方法
 
-### 🚀 [FEATURE_DEVELOPMENT.md](FEATURE_DEVELOPMENT.md)
+### 🚀 [FEATURE_DEVELOPMENT.md](docs/FEATURE_DEVELOPMENT.md)
 - 新機能開発ガイド
 - Cog作成方法
 - UI/UX ガイドライン
 
-### 🧪 [TESTING.md](TESTING.md)
-- テスト
+### 🧪 [TESTING.md](docs/TESTING.md)
+- テストフレームワーク
 - モックとテストデータ
 - CI/CD設定
+
+### 📚 [API_REFERENCE.md](docs/API_REFERENCE.md)
+- 全コマンドリファレンス
+- 使用方法と例
+- パラメーター詳細
+
+### ⚙️ [CONFIGURATION.md](docs/CONFIGURATION.md)
+- 設定ファイル詳細ガイド
+- 環境別設定例
+- パラメーター解説
+
+### 🚀 [DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- 本番環境デプロイガイド
+- systemd設定
+- Docker設定
+
+### 🤝 [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+- 開発貢献ガイド
+- コーディング規約
+- プルリクエスト手順
+
+### 🔧 [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- 問題解決ガイド
+- よくあるエラーと対処法
+- デバッグ方法
+
+### 📝 [CHANGELOG.md](CHANGELOG.md)
+- バージョン履歴
+- 新機能・修正履歴
+- マイグレーション注意事項
 
 ## ライセンス
 

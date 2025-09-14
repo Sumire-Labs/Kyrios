@@ -2,7 +2,96 @@
 
 Kyrios changelog
 
-## [0.1.1] - 2025-09-15
+## [0.1.2] - 2025-01-15
+
+### Added
+- **High-Performance Avatar Command System**
+  - `/avatar` command with comprehensive user avatar/banner display
+  - Multi-size avatar download support (128px, 256px, 512px, 1024px)
+  - Advanced image analysis with PIL integration
+  - Dominant color extraction and metadata analysis
+  - Server-specific vs global avatar detection
+  - Interactive download buttons with direct links
+  - Avatar change history tracking and statistics
+  - Banner display and download functionality
+
+- **Avatar Database Integration**
+  - `AvatarHistory` table for tracking avatar/banner changes
+  - `UserAvatarStats` table for user statistics and analytics
+  - Avatar change type classification (global, server, banner)
+  - Comprehensive avatar analytics (change frequency, formats, colors)
+  - Database methods for avatar history management
+
+- **Advanced Image Analysis System**
+  - Real-time image metadata extraction
+  - Color palette analysis with dominant color detection
+  - File format and size analysis
+  - Animation detection for GIF avatars
+  - Image quality assessment and compression analysis
+
+- **Memory Management Improvements**
+  - EventBus memory leak prevention with bounded deque
+  - Configurable event history size limits
+  - Automatic old event cleanup and garbage collection
+  - Memory usage statistics and monitoring
+  - Real-time memory efficiency reporting in ping command
+
+- **Enhanced Dependencies**
+  - Pillow (PIL) ^11.0.0 for advanced image processing
+  - aiohttp ^3.11.10 for optimized HTTP requests
+
+### Changed
+- **EventBus Architecture Overhaul**
+  - Replaced unlimited List with bounded collections.deque
+  - Added configurable `max_history_size` parameter (default: 1000)
+  - Implemented automatic memory management and cleanup
+  - Enhanced event processing with memory-safe operations
+  - Added comprehensive memory usage tracking
+
+- **Configuration System Enhancement**
+  - Added `[eventbus]` section with memory management settings
+  - Configurable event history limits for different environments
+  - Enhanced config.toml.example with memory optimization settings
+
+- **Ping Command Improvements**
+  - Added EventBus memory statistics display
+  - Real-time memory usage monitoring
+  - Event processing statistics (total processed, discarded)
+
+### Fixed
+- **Critical Memory Leak Resolution**
+  - Fixed unlimited event history accumulation in EventBus
+  - Resolved potential multi-GB memory consumption over time
+  - Prevented system crashes from memory exhaustion
+  - Implemented bounded memory usage with predictable limits
+
+- **Event Processing Optimization**
+  - Improved event handling performance with deque operations
+  - Reduced memory fragmentation in long-running sessions
+  - Enhanced garbage collection efficiency
+
+### Technical Improvements
+- **Memory Safety Architecture**
+  - Implemented bounded collections throughout event system
+  - Added comprehensive memory monitoring and alerting
+  - Enhanced resource cleanup and lifecycle management
+
+- **Performance Optimizations**
+  - Optimized image processing with efficient PIL operations
+  - Improved HTTP request handling with connection pooling
+  - Enhanced database query performance for avatar operations
+
+### Documentation Updates
+- **API Reference Enhancement**
+  - Comprehensive `/avatar` command documentation
+  - Detailed feature descriptions and usage examples
+  - Interactive UI component documentation
+
+### Migration Notes
+- Add `[eventbus]` section to config.toml for memory management
+- Run `poetry install` to install new image processing dependencies
+
+## [0.1.1] - 2025-09-14
 
 ### Added
 - **Enhanced Documentation Suite**
