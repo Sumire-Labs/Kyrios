@@ -107,6 +107,17 @@ class PingCog(commands.Cog):
             inline=True
         )
 
+        # EventBus メモリ統計
+        try:
+            event_stats = self.bot.event_bus.get_memory_stats()
+            embed.add_field(
+                name="📊 イベントバス統計",
+                value=f"**処理済み:** {event_stats['total_events_processed']:,}\n**メモリ使用:** {event_stats['memory_efficiency']}\n**破棄済み:** {event_stats['events_discarded']:,}",
+                inline=True
+            )
+        except Exception:
+            pass
+
         # パフォーマンス総評
         avg_latency = (api_latency + message_latency + db_latency) / 3
         if avg_latency < 75:

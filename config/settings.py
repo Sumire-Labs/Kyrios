@@ -104,5 +104,9 @@ class Settings:
         return self.config.get("logger", {}).get("log_deletes", True)
 
     @property
+    def eventbus_max_history_size(self) -> int:
+        return self.config.get("eventbus", {}).get("max_history_size", 1000)
+
+    @property
     def logger_log_joins(self) -> bool:
         return self.config.get("logger", {}).get("log_joins", True)

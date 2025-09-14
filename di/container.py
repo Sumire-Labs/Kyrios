@@ -28,7 +28,10 @@ class Container(containers.DeclarativeContainer):
     )
 
     # イベントバスプロバイダー
-    event_bus = providers.Singleton(EventBus)
+    event_bus = providers.Singleton(
+        EventBus,
+        max_history_size=config.provided.eventbus_max_history_size
+    )
 
     # オブザーバープロバイダー
     logging_observer = providers.Singleton(LoggingObserver)

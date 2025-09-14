@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Deque
+from collections import deque
 import logging
 from datetime import datetime
 
@@ -34,24 +35,34 @@ class Subject(ABC):
 
 
 class EventBus(Subject):
-    def __init__(self):
+    def __init__(self, max_history_size: int = 1000):
         super().__init__()
-        self._event_history: List[Dict[str, Any]] = []
+        self._max_history_size = max_history_size
+        self._event_history: Deque[Dict[str, Any]] = deque(maxlen=max_history_size)
+        self._total_events_count = 0
 
     async def emit_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        self._total_events_count += 1
         event_data = {
             "type": event_type,
             "data": data,
             "timestamp": datetime.now(),
-            "id": len(self._event_history)
+            "id": self._total_events_count
         }
 
+        # deque with maxlen automatically removes oldest items when full
         self._event_history.append(event_data)
         await self.notify(event_type, event_data)
-        self.logger.info(f"Event {event_type} emitted with data: {data}")
+
+        # Log with memory usage info periodically
+        if self._total_events_count % 100 == 0:
+            self.logger.info(f"Event {event_type} emitted. Total events: {self._total_events_count}, "
+                           f"History size: {len(self._event_history)}/{self._max_history_size}")
+        else:
+            self.logger.debug(f"Event {event_type} emitted with data: {data}")
 
     def get_event_history(self, event_type: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
-        events = self._event_history
+        events = list(self._event_history)
         if event_type:
             events = [e for e in events if e["type"] == event_type]
 
@@ -59,7 +70,17 @@ class EventBus(Subject):
 
     def clear_event_history(self) -> None:
         self._event_history.clear()
-        self.logger.info("Event history cleared")
+        self.logger.info(f"Event history cleared. Total events processed: {self._total_events_count}")
+
+    def get_memory_stats(self) -> Dict[str, Any]:
+        """メモリ使用状況の統計を取得"""
+        return {
+            "total_events_processed": self._total_events_count,
+            "current_history_size": len(self._event_history),
+            "max_history_size": self._max_history_size,
+            "memory_efficiency": f"{len(self._event_history)}/{self._max_history_size}",
+            "events_discarded": max(0, self._total_events_count - len(self._event_history))
+        }
 
 
 class LoggingObserver(Observer):

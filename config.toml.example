@@ -16,3 +16,6 @@ max_size = 10485760  # 10MB
 tickets = true
 logger = true
 auto_mod = false
+
+[eventbus]
+max_history_size = 1000  # Maximum events to keep in memory (prevents memory leaks)
