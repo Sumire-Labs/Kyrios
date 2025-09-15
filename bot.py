@@ -43,23 +43,31 @@ class KyriosBot(commands.Bot):
         activity_type = self.settings.status_type.lower()
         message = self.settings.status_message
 
+        self.logger.info(f"Creating activity - Type: '{activity_type}', Message: '{message}'")
+
         if activity_type == "game":
-            return discord.Game(name=message)
+            activity = discord.Game(name=message)
         elif activity_type == "watching":
-            return discord.Activity(type=discord.ActivityType.watching, name=message)
+            activity = discord.Activity(type=discord.ActivityType.watching, name=message)
         elif activity_type == "listening":
-            return discord.Activity(type=discord.ActivityType.listening, name=message)
+            activity = discord.Activity(type=discord.ActivityType.listening, name=message)
         elif activity_type == "streaming":
             url = self.settings.status_streaming_url
             if not url:
                 self.logger.warning("Streaming URL not configured, falling back to Game activity")
-                return discord.Game(name=message)
-            return discord.Streaming(name=message, url=url)
+                activity = discord.Game(name=message)
+            else:
+                activity = discord.Streaming(name=message, url=url)
         elif activity_type == "custom":
-            return discord.Activity(type=discord.ActivityType.custom, name=message)
+            # カスタムステータスはBOTでは制限があるため、Gameに変更
+            self.logger.warning("Custom activity type is not fully supported for bots, using Game instead")
+            activity = discord.Game(name=message)
         else:
             self.logger.warning(f"Unknown activity type: {activity_type}, falling back to Game")
-            return discord.Game(name=message)
+            activity = discord.Game(name=message)
+
+        self.logger.info(f"Created activity: {activity}")
+        return activity
 
     def _setup_logging(self) -> None:
         # 設定オブジェクトが注入されていない場合はデフォルト値を使用
@@ -132,8 +140,10 @@ class KyriosBot(commands.Bot):
             })
 
         # 設定可能なステータスメッセージ
+        self.logger.info("Setting bot presence...")
         activity = self._create_activity()
         await self.change_presence(activity=activity)
+        self.logger.info("Bot presence set successfully")
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         self.logger.info(f"Joined guild: {guild.name} ({guild.id})")
