@@ -84,25 +84,27 @@ class DatabaseManager:
             return await session.get(Ticket, ticket_id)
 
     async def get_tickets_by_user(self, guild_id: int, user_id: int) -> List[Ticket]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(Ticket).where(
                 Ticket.guild_id == guild_id,
                 Ticket.user_id == user_id,
                 Ticket.status != TicketStatus.CLOSED
             )
-            return list(session.exec(statement))
+            result = await session.execute(statement)
+            return list(result.scalars().all())
 
     async def get_open_tickets(self, guild_id: int) -> List[Ticket]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(Ticket).where(
                 Ticket.guild_id == guild_id,
                 Ticket.status == TicketStatus.OPEN
             )
-            return list(session.exec(statement))
+            result = await session.execute(statement)
+            return list(result.scalars().all())
 
     async def update_ticket(self, ticket_id: int, **kwargs) -> Optional[Ticket]:
-        with self.get_session() as session:
-            ticket = session.get(Ticket, ticket_id)
+        async with self.async_session() as session:
+            ticket = await session.get(Ticket, ticket_id)
             if not ticket:
                 return None
 
@@ -111,8 +113,8 @@ class DatabaseManager:
                     setattr(ticket, key, value)
 
             session.add(ticket)
-            session.commit()
-            session.refresh(ticket)
+            await session.commit()
+            await session.refresh(ticket)
             self.logger.info(f"Updated ticket {ticket_id}")
             return ticket
 
@@ -127,7 +129,7 @@ class DatabaseManager:
     async def create_log(self, guild_id: int, log_type: LogType, action: str,
                         user_id: Optional[int] = None, moderator_id: Optional[int] = None,
                         channel_id: Optional[int] = None, details: Optional[str] = None) -> Log:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             log = Log(
                 guild_id=guild_id,
                 log_type=log_type,
@@ -138,32 +140,35 @@ class DatabaseManager:
                 details=details
             )
             session.add(log)
-            session.commit()
-            session.refresh(log)
+            await session.commit()
+            await session.refresh(log)
             self.logger.debug(f"Created log entry: {action} in guild {guild_id}")
             return log
 
     async def get_logs(self, guild_id: int, log_type: Optional[LogType] = None,
                       limit: int = 100) -> List[Log]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(Log).where(Log.guild_id == guild_id)
 
             if log_type:
                 statement = statement.where(Log.log_type == log_type)
 
             statement = statement.order_by(desc(Log.timestamp)).limit(limit)
-            return list(session.exec(statement))
+            result = await session.execute(statement)
+            return list(result.scalars().all())
 
     # Guild Settings methods
     async def get_guild_settings(self, guild_id: int) -> Optional[GuildSettings]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(GuildSettings).where(GuildSettings.guild_id == guild_id)
-            return session.exec(statement).first()
+            result = await session.execute(statement)
+            return result.scalars().first()
 
     async def create_or_update_guild_settings(self, guild_id: int, **kwargs) -> GuildSettings:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(GuildSettings).where(GuildSettings.guild_id == guild_id)
-            settings = session.exec(statement).first()
+            result = await session.execute(statement)
+            settings = result.scalars().first()
 
             if settings:
                 for key, value in kwargs.items():
@@ -174,15 +179,15 @@ class DatabaseManager:
                 settings = GuildSettings(guild_id=guild_id, **kwargs)
 
             session.add(settings)
-            session.commit()
-            session.refresh(settings)
+            await session.commit()
+            await session.refresh(settings)
             self.logger.info(f"Updated settings for guild {guild_id}")
             return settings
 
     # Ticket Message methods
     async def add_ticket_message(self, ticket_id: int, user_id: int, message_id: int,
                                content: str, is_system_message: bool = False) -> TicketMessage:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             message = TicketMessage(
                 ticket_id=ticket_id,
                 user_id=user_id,
@@ -191,16 +196,17 @@ class DatabaseManager:
                 is_system_message=is_system_message
             )
             session.add(message)
-            session.commit()
-            session.refresh(message)
+            await session.commit()
+            await session.refresh(message)
             return message
 
     async def get_ticket_messages(self, ticket_id: int) -> List[TicketMessage]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(TicketMessage).where(
                 TicketMessage.ticket_id == ticket_id
             ).order_by(TicketMessage.timestamp)
-            return list(session.exec(statement))
+            result = await session.execute(statement)
+            return list(result.scalars().all())
 
     # Avatar History methods
     async def record_avatar_change(self, user_id: int, history_type: AvatarHistoryType,
@@ -227,28 +233,31 @@ class DatabaseManager:
             session.refresh(history)
 
             # 2. ユーザー統計を同じトランザクション内で更新
-            self._update_user_avatar_stats_sync(user_id, history_type, session)
+            await self._update_user_avatar_stats_sync(user_id, history_type, session)
 
             # トランザクション終了時に自動コミット（context manager）
             self.logger.info(f"Recorded avatar change for user {user_id}")
             return history
 
     async def get_avatar_history(self, user_id: int, limit: int = 10) -> List[AvatarHistory]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(AvatarHistory).where(
                 AvatarHistory.user_id == user_id
             ).order_by(desc(AvatarHistory.timestamp)).limit(limit)
-            return list(session.exec(statement))
+            result = await session.execute(statement)
+            return list(result.scalars().all())
 
     async def get_user_avatar_stats(self, user_id: int) -> Optional[UserAvatarStats]:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
-            return session.exec(statement).first()
+            result = await session.execute(statement)
+            return result.scalars().first()
 
-    def _update_user_avatar_stats_sync(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
-        """同期版のユーザー統計更新（トランザクション内で使用）"""
+    async def _update_user_avatar_stats_sync(self, user_id: int, history_type: AvatarHistoryType, session: AsyncSession) -> None:
+        """非同期版のユーザー統計更新（トランザクション内で使用）"""
         statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
-        stats = session.exec(statement).first()
+        result = await session.execute(statement)
+        stats = result.scalars().first()
 
         if not stats:
             stats = UserAvatarStats(user_id=user_id)
@@ -271,13 +280,14 @@ class DatabaseManager:
     # Utility methods
     async def cleanup_old_logs(self, days: int = 30) -> int:
         cutoff_date = datetime.now() - timedelta(days=days)
-        with self.get_session() as session:
+        async with self.async_session() as session:
             statement = select(Log).where(Log.timestamp < cutoff_date)
-            old_logs = list(session.exec(statement))
+            result = await session.execute(statement)
+            old_logs = list(result.scalars().all())
 
             for log in old_logs:
                 session.delete(log)
 
-            session.commit()
+            await session.commit()
             self.logger.info(f"Cleaned up {len(old_logs)} old log entries")
             return len(old_logs)
