@@ -272,10 +272,10 @@ class DatabaseManager:
 
         # session.commit() は呼ばない（トランザクション管理はコンテキストマネージャーに委譲）
 
-    async def _update_user_avatar_stats(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
+    async def _update_user_avatar_stats(self, user_id: int, history_type: AvatarHistoryType, session: AsyncSession) -> None:
         """後方互換性のための非推奨メソッド"""
         self.logger.warning("_update_user_avatar_stats is deprecated, use _update_user_avatar_stats_sync within transaction")
-        self._update_user_avatar_stats_sync(user_id, history_type, session)
+        await self._update_user_avatar_stats_sync(user_id, history_type, session)
 
     # Utility methods
     async def cleanup_old_logs(self, days: int = 30) -> int:
