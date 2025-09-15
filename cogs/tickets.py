@@ -102,11 +102,11 @@ class TicketManagementView(discord.ui.View):
         self.ticket_id = ticket_id
 
     @discord.ui.button(label="👤 アサイン", style=discord.ButtonStyle.secondary)  # type: ignore
-    async def assign_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
+    async def assign_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.send_modal(AssignModal(self.bot, self.ticket_id))
 
     @discord.ui.button(label="🔒 クローズ", style=discord.ButtonStyle.danger)  # type: ignore
-    async def close_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         if not (isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.manage_messages):
             ticket = await self.bot.database.get_ticket(self.ticket_id)
             if ticket and interaction.user.id != ticket.user_id:
