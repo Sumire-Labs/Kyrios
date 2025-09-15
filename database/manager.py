@@ -2,7 +2,8 @@ from typing import Optional, List, Any
 from pathlib import Path
 import logging
 from contextlib import asynccontextmanager
-from sqlmodel import SQLModel, create_engine, Session, select
+from sqlmodel import SQLModel, select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
@@ -15,31 +16,38 @@ class DatabaseManager:
         self.database_path = Path(database_path)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.engine = create_engine(f"sqlite:///{self.database_path}")
+        # aiosqliteを使用したasync engine
+        self.engine = create_async_engine(f"sqlite+aiosqlite:///{self.database_path}")
+        self.async_session = async_sessionmaker(self.engine, expire_on_commit=False)
         self.logger = logging.getLogger(__name__)
-        self._create_tables()
 
-    def _create_tables(self) -> None:
-        SQLModel.metadata.create_all(self.engine)
+    async def _create_tables(self) -> None:
+        """非同期でテーブル作成"""
+        async with self.engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
         self.logger.info("Database tables created successfully")
 
-    def get_session(self) -> Session:
-        return Session(self.engine)
+    async def initialize(self) -> None:
+        """データベース初期化（非同期）"""
+        await self._create_tables()
+
+    def get_session(self) -> AsyncSession:
+        """下位互換性のため残す（非推奨）"""
+        self.logger.warning("get_session() is deprecated, use async context managers")
+        return self.async_session()
 
     @asynccontextmanager
     async def transaction(self):
-        """トランザクション管理用のコンテキストマネージャー"""
-        session = Session(self.engine)
-        try:
-            yield session
-            session.commit()
-            self.logger.debug("Transaction committed successfully")
-        except Exception as e:
-            session.rollback()
-            self.logger.error(f"Transaction rolled back due to error: {e}")
-            raise
-        finally:
-            session.close()
+        """非同期トランザクション管理用のコンテキストマネージャー"""
+        async with self.async_session() as session:
+            try:
+                yield session
+                await session.commit()
+                self.logger.debug("Transaction committed successfully")
+            except Exception as e:
+                await session.rollback()
+                self.logger.error(f"Transaction rolled back due to error: {e}")
+                raise
 
     async def execute_in_transaction(self, operations):
         """複数の操作を一つのトランザクションで実行"""
@@ -47,7 +55,8 @@ class DatabaseManager:
             results = []
             for operation in operations:
                 if callable(operation):
-                    result = operation(session)
+                    # 非同期操作をサポート
+                    result = await operation(session) if hasattr(operation, '__call__') else operation(session)
                     results.append(result)
                 else:
                     raise ValueError("Operation must be callable")
@@ -56,7 +65,7 @@ class DatabaseManager:
     # Ticket methods
     async def create_ticket(self, guild_id: int, channel_id: int, user_id: int,
                            title: str, description: Optional[str] = None) -> Ticket:
-        with self.get_session() as session:
+        async with self.async_session() as session:
             ticket = Ticket(
                 guild_id=guild_id,
                 channel_id=channel_id,
@@ -65,14 +74,14 @@ class DatabaseManager:
                 description=description
             )
             session.add(ticket)
-            session.commit()
-            session.refresh(ticket)
+            await session.commit()
+            await session.refresh(ticket)
             self.logger.info(f"Created ticket {ticket.id} for user {user_id} in guild {guild_id}")
             return ticket
 
     async def get_ticket(self, ticket_id: int) -> Optional[Ticket]:
-        with self.get_session() as session:
-            return session.get(Ticket, ticket_id)
+        async with self.async_session() as session:
+            return await session.get(Ticket, ticket_id)
 
     async def get_tickets_by_user(self, guild_id: int, user_id: int) -> List[Ticket]:
         with self.get_session() as session:
