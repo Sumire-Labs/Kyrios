@@ -39,11 +39,21 @@ class KyriosBot(commands.Bot):
         self.logger = logging.getLogger(__name__)
 
     def _setup_logging(self) -> None:
-        log_file_path = Path(self.settings.logging_file)
+        # 設定オブジェクトが注入されていない場合はデフォルト値を使用
+        try:
+            log_file = self.settings.logging_file
+            log_level = self.settings.logging_level
+        except AttributeError:
+            # フォールバック設定
+            log_file = "kyrios.log"
+            log_level = "INFO"
+            print("Warning: Using fallback logging configuration")
+
+        log_file_path = Path(log_file)
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
         logging.basicConfig(
-            level=getattr(logging, self.settings.logging_level),
+            level=getattr(logging, log_level),
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler(log_file_path, encoding='utf-8'),
@@ -141,8 +151,19 @@ async def main():
 
     bot = None
     try:
-        # ボット初期化（非同期リソースを使わない）
-        bot = KyriosBot()
+        # 設定を直接取得してボット初期化
+        config = container.config()
+        database_manager = container.database_manager_raw()
+        event_bus = container.wired_event_bus()
+        cog_factory = container.cog_factory()
+
+        # ボット初期化
+        bot = KyriosBot(
+            config=config,
+            database=database_manager,
+            event_bus=event_bus,
+            cog_factory=cog_factory
+        )
 
         # 非同期リソース初期化
         await container.init_resources()
