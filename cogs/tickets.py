@@ -11,7 +11,7 @@ class TicketView(discord.ui.View):
         self.bot = bot
 
     @discord.ui.button(label="🎫 チケット作成", style=discord.ButtonStyle.green, custom_id="create_ticket")  # type: ignore
-    async def create_ticket(self, button: discord.ui.Button, interaction: discord.Interaction):  # type: ignore
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.defer(ephemeral=True)
 
         guild = interaction.guild
