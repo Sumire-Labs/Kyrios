@@ -7,9 +7,9 @@ KyriosはSQLite + SQLModel (FastAPI風) を使用して、型安全で効率的�
 ## データベース構成
 
 ### 技術スタック
-- **SQLite**: 軽量で高性能な埋め込みDB
+- **aiosqlite**: 非同期SQLiteドライバーによる真の非ブロッキング操作
 - **SQLModel**: Pydanticベースの型安全ORM
-- **SQLAlchemy**: 低レベルDB操作とマイグレーション
+- **SQLAlchemy[asyncio]**: 非同期DB操作とマイグレーション
 
 ## データモデル設計
 
@@ -134,13 +134,19 @@ class TicketMessage(SQLModel, table=True):
 ```python
 from database.manager import DatabaseManager
 
-# 初期化
+# 初期化（非同期）
 db_manager = DatabaseManager("kyrios.db")
+await db_manager.initialize()
 
-# セッション取得
-with db_manager.get_session() as session:
-    # データベース操作
-    pass
+# 非同期トランザクション（推奨）
+async with db_manager.transaction() as session:
+    # 非同期データベース操作
+    result = await session.execute(statement)
+
+# 非推奨：get_session()は下位互換性のためのみ残存
+# async with db_manager.async_session() as session:
+#     # 直接セッション使用
+#     pass
 ```
 
 ### 主要メソッド
@@ -292,7 +298,7 @@ from sqlmodel import select, and_, or_
 
 async def get_priority_tickets(self, guild_id: int) -> List[Ticket]:
     """高優先度のオープンチケットを取得"""
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         statement = select(Ticket).where(
             and_(
                 Ticket.guild_id == guild_id,
@@ -301,13 +307,14 @@ async def get_priority_tickets(self, guild_id: int) -> List[Ticket]:
             )
         ).order_by(Ticket.priority.desc(), Ticket.created_at)
 
-        return list(session.exec(statement))
+        result = await session.execute(statement)
+        return list(result.scalars().all())
 
 async def get_recent_logs(self, guild_id: int, hours: int = 24) -> List[Log]:
     """指定時間内のログを取得"""
     cutoff_time = datetime.now() - timedelta(hours=hours)
 
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         statement = select(Log).where(
             and_(
                 Log.guild_id == guild_id,
@@ -315,7 +322,8 @@ async def get_recent_logs(self, guild_id: int, hours: int = 24) -> List[Log]:
             )
         ).order_by(Log.timestamp.desc())
 
-        return list(session.exec(statement))
+        result = await session.execute(statement)
+        return list(result.scalars().all())
 ```
 
 ### 3. 統計・集計クエリ
@@ -325,20 +333,22 @@ from sqlalchemy import func
 
 async def get_ticket_statistics(self, guild_id: int) -> dict:
     """チケット統計を取得"""
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         # ステータス別カウント
-        status_counts = session.exec(
+        status_result = await session.execute(
             select(Ticket.status, func.count(Ticket.id))
             .where(Ticket.guild_id == guild_id)
             .group_by(Ticket.status)
-        ).all()
+        )
+        status_counts = status_result.all()
 
         # 優先度別カウント
-        priority_counts = session.exec(
+        priority_result = await session.execute(
             select(Ticket.priority, func.count(Ticket.id))
             .where(Ticket.guild_id == guild_id)
             .group_by(Ticket.priority)
-        ).all()
+        )
+        priority_counts = priority_result.all()
 
         return {
             "status_distribution": dict(status_counts),
@@ -403,12 +413,12 @@ async def create_multiple_logs(self, log_data_list: List[dict]) -> List[Log]:
     """複数ログの効率的な作成"""
     logs = [Log(**data) for data in log_data_list]
 
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         session.add_all(logs)
-        session.commit()
+        await session.commit()
 
         for log in logs:
-            session.refresh(log)
+            await session.refresh(log)
 
         return logs
 ```
@@ -425,7 +435,7 @@ async def get_logs_paginated(
     """ページネーション付きログ取得"""
     offset = (page - 1) * per_page
 
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         # データ取得
         statement = (
             select(Log)
@@ -434,11 +444,13 @@ async def get_logs_paginated(
             .offset(offset)
             .limit(per_page)
         )
-        logs = list(session.exec(statement))
+        result = await session.execute(statement)
+        logs = list(result.scalars().all())
 
         # 総件数取得
         count_statement = select(func.count(Log.id)).where(Log.guild_id == guild_id)
-        total_count = session.exec(count_statement).one()
+        count_result = await session.execute(count_statement)
+        total_count = count_result.scalar_one()
 
         return logs, total_count
 ```
@@ -449,10 +461,10 @@ async def get_logs_paginated(
 # 長時間実行される処理での適切な接続管理
 async def long_running_process(self):
     for batch in data_batches:
-        with self.db.get_session() as session:
+        async with self.db.async_session() as session:
             # バッチ処理
-            process_batch(session, batch)
-            session.commit()
+            await process_batch(session, batch)
+            await session.commit()
         # セッション自動クローズ
 ```
 
@@ -476,14 +488,15 @@ async def cleanup_old_logs(self, days: int = 30) -> int:
     """古いログエントリの削除"""
     cutoff_date = datetime.now() - timedelta(days=days)
 
-    with self.db.get_session() as session:
+    async with self.db.async_session() as session:
         statement = select(Log).where(Log.timestamp < cutoff_date)
-        old_logs = list(session.exec(statement))
+        result = await session.execute(statement)
+        old_logs = list(result.scalars().all())
 
         for log in old_logs:
-            session.delete(log)
+            await session.delete(log)
 
-        session.commit()
+        await session.commit()
         return len(old_logs)
 ```
 
@@ -602,8 +615,9 @@ async def process_large_dataset(self, items):
 ```python
 # 読み取り専用はトランザクション不要
 async def get_user_tickets(self, user_id: int):
-    with self.get_session() as session:
-        return session.exec(select(Ticket).where(Ticket.user_id == user_id))
+    async with self.async_session() as session:
+        result = await session.execute(select(Ticket).where(Ticket.user_id == user_id))
+        return list(result.scalars().all())
 ```
 
 このトランザクション管理により、Kyriosは高いデータ整合性と信頼性を確保しています。

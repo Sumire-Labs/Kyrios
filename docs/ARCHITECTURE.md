@@ -175,8 +175,8 @@ Discordイベント → EventListener → Database操作 → LogEmbed生成 → 
 
 ### データ管理
 - **SQLModel**: ORMとデータバリデーション
-- **SQLAlchemy**: データベース抽象化
-- **SQLite**: 軽量データベース
+- **SQLAlchemy[asyncio]**: 非同期データベース抽象化
+- **aiosqlite**: 非同期SQLiteドライバー（真の非ブロッキングI/O）
 
 ### 依存関係管理
 - **dependency-injector**: DI コンテナ
@@ -233,9 +233,11 @@ factory.register_cog("auto_mod", AutoModerationCog)
 ### 非同期処理
 - **全面async/await**: ブロッキング処理の排除
 - **並行処理**: 複数処理の同時実行
-- **リソース管理**: 適切なコネクション管理
+- **aiosqlite統合**: 真の非同期データベース操作によるイベントループ最適化
+- **リソース管理**: 非同期コネクション管理とプーリング
 - **asyncio.to_thread**: CPU集約的処理（画像解析等）のノンブロッキング実行
 - **スレッドプール活用**: 同期ライブラリの非同期統合
+- **トランザクション最適化**: async context managerによる自動リソース管理
 
 ### メモリ効率
 - **Singleton Pattern**: 重いオブジェクトの再利用
