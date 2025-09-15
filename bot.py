@@ -87,6 +87,15 @@ class KyriosBot(commands.Bot):
     async def setup_hook(self) -> None:
         self.logger.info("Setting up Kyrios Bot...")
         await self._load_cogs()
+
+        # スラッシュコマンドをDiscordに同期
+        try:
+            self.logger.info("Syncing slash commands...")
+            synced = await self.tree.sync()
+            self.logger.info(f"Synced {len(synced)} slash commands to Discord")
+        except Exception as e:
+            self.logger.error(f"Failed to sync slash commands: {e}")
+
         self.logger.info("Kyrios Bot setup completed")
 
     async def _load_cogs(self) -> None:

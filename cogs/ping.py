@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import logging
 import time
@@ -12,19 +13,20 @@ class PingCog(commands.Cog):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
 
-    @commands.hybrid_command(name="ping", description="高度なレイテンシ測定を行います")
-    async def ping(self, ctx: commands.Context):
+    @app_commands.command(name="ping", description="高度なレイテンシ測定を行います")
+    async def ping(self, interaction: discord.Interaction):
         # Discord APIレイテンシ
         api_latency = round(self.bot.latency * 1000)
 
-        # メッセージレスポンス測定
+        # インタラクションレスポンス測定
+        await interaction.response.defer()
         start_time = time.perf_counter()
         embed_initial = discord.Embed(
             title="🔍 レイテンシ測定中...",
             description="各種レイテンシを測定しています...",
             color=discord.Color.yellow()
         )
-        message = await ctx.send(embed=embed_initial)
+        await interaction.followup.send(embed=embed_initial)
         message_latency = round((time.perf_counter() - start_time) * 1000)
 
         # データベースレスポンス測定
@@ -142,7 +144,7 @@ class PingCog(commands.Cog):
         embed.color = performance_color
         embed.set_footer(text="Kyrios Performance Monitor", icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None)
 
-        await message.edit(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
         # パフォーマンスログ
         self.logger.info(f"Ping command executed - API: {api_latency}ms, Message: {message_latency}ms, DB: {db_latency}ms")
