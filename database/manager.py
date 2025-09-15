@@ -1,6 +1,7 @@
 from typing import Optional, List, Any
 from pathlib import Path
 import logging
+from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, create_engine, Session, select
 from sqlalchemy import desc
 from datetime import datetime, timedelta
@@ -24,6 +25,33 @@ class DatabaseManager:
 
     def get_session(self) -> Session:
         return Session(self.engine)
+
+    @asynccontextmanager
+    async def transaction(self):
+        """トランザクション管理用のコンテキストマネージャー"""
+        session = Session(self.engine)
+        try:
+            yield session
+            session.commit()
+            self.logger.debug("Transaction committed successfully")
+        except Exception as e:
+            session.rollback()
+            self.logger.error(f"Transaction rolled back due to error: {e}")
+            raise
+        finally:
+            session.close()
+
+    async def execute_in_transaction(self, operations):
+        """複数の操作を一つのトランザクションで実行"""
+        async with self.transaction() as session:
+            results = []
+            for operation in operations:
+                if callable(operation):
+                    result = operation(session)
+                    results.append(result)
+                else:
+                    raise ValueError("Operation must be callable")
+            return results
 
     # Ticket methods
     async def create_ticket(self, guild_id: int, channel_id: int, user_id: int,
@@ -173,7 +201,8 @@ class DatabaseManager:
                                  dominant_color: Optional[str] = None,
                                  image_format: Optional[str] = None,
                                  image_size: Optional[int] = None) -> AvatarHistory:
-        with self.get_session() as session:
+        async with self.transaction() as session:
+            # 1. アバター履歴を作成
             history = AvatarHistory(
                 user_id=user_id,
                 guild_id=guild_id,
@@ -185,11 +214,13 @@ class DatabaseManager:
                 image_size=image_size
             )
             session.add(history)
-            session.commit()
+            session.flush()  # IDを取得するため（コミットはしない）
             session.refresh(history)
 
-            # Update user stats
-            await self._update_user_avatar_stats(user_id, history_type, session)
+            # 2. ユーザー統計を同じトランザクション内で更新
+            self._update_user_avatar_stats_sync(user_id, history_type, session)
+
+            # トランザクション終了時に自動コミット（context manager）
             self.logger.info(f"Recorded avatar change for user {user_id}")
             return history
 
@@ -205,7 +236,8 @@ class DatabaseManager:
             statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
             return session.exec(statement).first()
 
-    async def _update_user_avatar_stats(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
+    def _update_user_avatar_stats_sync(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
+        """同期版のユーザー統計更新（トランザクション内で使用）"""
         statement = select(UserAvatarStats).where(UserAvatarStats.user_id == user_id)
         stats = session.exec(statement).first()
 
@@ -220,7 +252,12 @@ class DatabaseManager:
             stats.total_banner_changes += 1
             stats.last_banner_change = datetime.now()
 
-        session.commit()
+        # session.commit() は呼ばない（トランザクション管理はコンテキストマネージャーに委譲）
+
+    async def _update_user_avatar_stats(self, user_id: int, history_type: AvatarHistoryType, session: Session) -> None:
+        """後方互換性のための非推奨メソッド"""
+        self.logger.warning("_update_user_avatar_stats is deprecated, use _update_user_avatar_stats_sync within transaction")
+        self._update_user_avatar_stats_sync(user_id, history_type, session)
 
     # Utility methods
     async def cleanup_old_logs(self, days: int = 30) -> int:

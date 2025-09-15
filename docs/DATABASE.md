@@ -487,4 +487,123 @@ async def cleanup_old_logs(self, days: int = 30) -> int:
         return len(old_logs)
 ```
 
-このデータベース設計により、Kyriosは高性能で拡張性のあるデータ管理を実現しています。
+## トランザクション管理
+
+### データ整合性の確保
+
+Kyriosでは、複数のテーブルにまたがる操作でデータ整合性を保証するため、適切なトランザクション管理を実装しています。
+
+#### 問題のあるパターン（非推奨）
+```python
+# ❌ トランザクションが分離されている（データ不整合のリスク）
+async def bad_record_avatar_change(self, user_id: int):
+    # 1. 履歴を保存
+    with self.get_session() as session:
+        history = AvatarHistory(user_id=user_id, ...)
+        session.add(history)
+        session.commit()  # ✅ 履歴は保存完了
+
+    # 2. 統計を更新（別のトランザクション）
+    with self.get_session() as session:
+        stats = session.get(UserAvatarStats, user_id)
+        stats.total_changes += 1
+        session.commit()  # 💥 ここでエラーが発生すると統計だけ失敗
+```
+
+#### 正しいパターン（推奨）
+```python
+# ✅ 単一トランザクションでアトミック操作
+async def record_avatar_change(self, user_id: int, ...):
+    async with self.transaction() as session:
+        # 1. 履歴を作成
+        history = AvatarHistory(user_id=user_id, ...)
+        session.add(history)
+        session.flush()  # IDを取得（コミットはしない）
+
+        # 2. 統計を同じトランザクション内で更新
+        self._update_user_avatar_stats_sync(user_id, history_type, session)
+
+        # トランザクション終了時に自動コミット
+        # エラーが発生した場合は自動ロールバック
+```
+
+### トランザクション管理の基本パターン
+
+#### 1. シンプルなトランザクション
+```python
+async with self.transaction() as session:
+    # 複数の操作を実行
+    user = User(name="test")
+    session.add(user)
+
+    log = Log(user_id=user.id, action="created")
+    session.add(log)
+
+    # context manager終了時に自動コミット
+```
+
+#### 2. 複雑な操作の管理
+```python
+async def complex_ticket_operation(self, ticket_data):
+    operations = [
+        lambda session: self._create_ticket_sync(session, ticket_data),
+        lambda session: self._create_initial_message_sync(session, ticket_data),
+        lambda session: self._update_guild_stats_sync(session, ticket_data.guild_id),
+        lambda session: self._create_audit_log_sync(session, ticket_data)
+    ]
+
+    results = await self.execute_in_transaction(operations)
+    return results[0]  # チケット情報を返す
+```
+
+#### 3. エラーハンドリング
+```python
+async def safe_operation(self, data):
+    try:
+        async with self.transaction() as session:
+            # 操作実行
+            result = perform_complex_operation(session, data)
+            return result
+    except IntegrityError as e:
+        self.logger.error(f"Data integrity violation: {e}")
+        raise ValueError("操作に失敗しました：データの整合性エラー")
+    except Exception as e:
+        self.logger.error(f"Transaction failed: {e}")
+        raise
+```
+
+### ベストプラクティス
+
+#### 1. 一貫性が必要な操作は必ずトランザクション内で実行
+```python
+# ✅ 関連するデータの更新は同じトランザクション内
+async with self.transaction() as session:
+    ticket.status = TicketStatus.CLOSED
+    ticket.closed_at = datetime.now()
+
+    log = Log(action="ticket_closed", ticket_id=ticket.id)
+    session.add(log)
+```
+
+#### 2. 長時間実行される処理はバッチ化
+```python
+async def process_large_dataset(self, items):
+    batch_size = 100
+    for i in range(0, len(items), batch_size):
+        batch = items[i:i + batch_size]
+
+        async with self.transaction() as session:
+            for item in batch:
+                process_item(session, item)
+        # 各バッチ後にトランザクション完了
+```
+
+#### 3. 読み取り専用操作は通常のセッション使用
+```python
+# 読み取り専用はトランザクション不要
+async def get_user_tickets(self, user_id: int):
+    with self.get_session() as session:
+        return session.exec(select(Ticket).where(Ticket.user_id == user_id))
+```
+
+このトランザクション管理により、Kyriosは高いデータ整合性と信頼性を確保しています。
