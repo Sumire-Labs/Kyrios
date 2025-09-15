@@ -15,16 +15,27 @@ def _setup_event_bus(event_bus: EventBus, logging_observer: LoggingObserver,
     return event_bus
 
 
+async def _initialize_database(database_manager: DatabaseManager) -> DatabaseManager:
+    """データベースの非同期初期化"""
+    await database_manager.initialize()
+    return database_manager
+
+
 class Container(containers.DeclarativeContainer):
     """DIコンテナ - 全ての依存関係を管理"""
 
     # 設定プロバイダー
     config = providers.Singleton(Settings)
 
-    # データベースプロバイダー
-    database_manager = providers.Singleton(
+    # データベースプロバイダー（非同期初期化付き）
+    database_manager_raw = providers.Singleton(
         DatabaseManager,
         database_path=config.provided.database_path
+    )
+
+    database_manager = providers.Resource(
+        _initialize_database,
+        database_manager=database_manager_raw
     )
 
     # イベントバスプロバイダー

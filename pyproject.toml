@@ -9,8 +9,9 @@ packages = [{include = "kyrios"}]
 [tool.poetry.dependencies]
 python = "^3.13"
 discord-py = "^2.4.0"
-sqlalchemy = "^2.0.36"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.36"}
 sqlmodel = "^0.0.22"
+aiosqlite = "^0.20.0"
 pydantic = "^2.10.3"
 pydantic-settings = "^2.6.1"
 toml = "^0.10.2"
