@@ -33,7 +33,7 @@ class PingCog(commands.Cog):
         db_start = time.perf_counter()
         try:
             # 簡単なDB操作でレイテンシ測定
-            await self.bot.database.get_guild_settings(ctx.guild.id if ctx.guild else 0)
+            await self.bot.database.get_guild_settings(interaction.guild.id if interaction.guild else 0)
             db_latency = round((time.perf_counter() - db_start) * 1000)
             db_status = "✅ 正常"
         except Exception as e:
@@ -105,7 +105,7 @@ class PingCog(commands.Cog):
 
         embed.add_field(
             name="🌐 シャード情報",
-            value=f"シャード: **{ctx.guild.shard_id if ctx.guild else 'N/A'}**\nサーバー数: **{len(self.bot.guilds)}**",
+            value=f"シャード: **{interaction.guild.shard_id if interaction.guild else 'N/A'}**\nサーバー数: **{len(self.bot.guilds)}**",
             inline=True
         )
 
