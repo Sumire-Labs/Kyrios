@@ -8,8 +8,6 @@ import asyncio
 from datetime import datetime
 from typing import Optional, Union, List, Tuple
 
-from di import DatabaseDep, EventBusDep, ConfigDep
-from dependency_injector.wiring import inject
 from database.models import AvatarHistoryType
 from utils.image_analyzer import ImageAnalyzer
 
@@ -183,18 +181,11 @@ class AvatarHistoryView(discord.ui.View):
 
 
 class AvatarCog(commands.Cog):
-    @inject
-    def __init__(
-        self,
-        bot,
-        database=DatabaseDep,
-        event_bus=EventBusDep,
-        config=ConfigDep
-    ):
+    def __init__(self, bot, database=None, event_bus=None, config=None):
         self.bot = bot
-        self.database = database
-        self.event_bus = event_bus
-        self.config = config
+        self.database = database or bot.database
+        self.event_bus = event_bus or bot.event_bus
+        self.config = config or bot.settings
         self.logger = logging.getLogger(__name__)
         self.image_analyzer = ImageAnalyzer()
 
