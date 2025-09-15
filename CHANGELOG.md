@@ -2,6 +2,87 @@
 
 Kyrios changelog
 
+## [0.1.5] - 2025-09-15
+
+### Added
+- **Configurable Status Messages**
+  - Custom bot status configuration via config.toml
+  - Support for multiple activity types: game, watching, listening, streaming
+  - Dynamic status message updates without code changes
+  - Streaming URL configuration for Twitch integration
+
+- **Complete Slash Command System**
+  - Full migration from hybrid commands to app_commands
+  - Automatic command synchronization with Discord API
+  - Improved command discovery and user experience
+  - Enhanced command response handling with interaction-based architecture
+
+### Changed
+- **Command Architecture Overhaul**
+  - All commands migrated to Discord slash command format
+  - Unified interaction-based response system
+  - Improved error handling and user feedback
+  - Better integration with Discord's native UI components
+
+- **Configuration System Enhancement**
+  - Added `[status]` section to config.toml with comprehensive options
+  - Better fallback handling for unsupported activity types
+  - Enhanced configuration validation and error reporting
+
+### Fixed
+- **Critical UI Component Issues**
+  - Fixed Button callback signature errors across all UI components
+  - Resolved interaction parameter order in ticket management system
+  - Fixed avatar command UI interactions and button responses
+  - Corrected Discord.py 2.4+ compatibility issues
+
+- **Dependency Injection Resolution**
+  - Resolved DI container initialization timing issues
+  - Fixed Provide object attribute errors in cogs
+  - Implemented proper fallback dependency resolution
+  - Enhanced error handling for missing dependencies
+
+- **Command Execution Errors**
+  - Fixed NameError issues in ping command after app_commands migration
+  - Resolved context vs interaction parameter conflicts
+  - Improved async/await pattern consistency across all commands
+
+### Technical Improvements
+- **Discord API Integration**
+  - Enhanced bot presence management with configurable activities
+  - Improved slash command registration and synchronization
+  - Better error handling for Discord API limitations
+  - Optimized interaction response patterns
+
+- **Code Quality Enhancements**
+  - Added comprehensive debug logging for status configuration
+  - Improved error messages and user feedback
+  - Enhanced type safety and parameter validation
+  - Better separation of concerns in UI components
+
+- **Configuration Management**
+  - Streamlined config.toml structure with status options
+  - Added example configurations for all supported activity types
+  - Enhanced documentation for configuration options
+
+### Configuration Options
+```toml
+[status]
+type = "game"  # game, watching, listening, streaming
+message = "Your custom message"
+streaming_url = ""  # Required for streaming type
+```
+
+### Migration Notes
+- **Breaking Changes**: All commands are now slash commands only
+- **UI Updates**: Button interactions require bot restart to apply fixes
+- **Configuration**: Add `[status]` section to config.toml for custom status
+
+### Performance Improvements
+- **Interaction Efficiency**: Faster command response times with native slash commands
+- **Resource Management**: Improved memory usage with proper DI resolution
+- **Error Recovery**: Better error handling prevents cascading failures
+
 ## [0.1.4] - 2025-09-15
 
 ### Added
