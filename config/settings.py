@@ -13,14 +13,14 @@ class Settings:
 
     def _load_config(self) -> Dict[str, Any]:
         try:
-            # Check if we're using the toml library (has loads method) or tomllib
-            if hasattr(tomllib, 'loads'):
-                # toml library (text mode)
-                with open(self.config_path, "r", encoding="utf-8") as f:
-                    return tomllib.load(f)  # type: ignore
-            else:
+            # Check if we're using the standard tomllib (Python 3.11+) or toml library
+            if tomllib.__name__ == 'tomllib':
                 # Python 3.11+ tomllib (binary mode)
                 with open(self.config_path, "rb") as f:
+                    return tomllib.load(f)  # type: ignore
+            else:
+                # toml library (text mode)
+                with open(self.config_path, "r", encoding="utf-8") as f:
                     return tomllib.load(f)  # type: ignore
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
