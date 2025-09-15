@@ -3,6 +3,11 @@ token = "YOUR_BOT_TOKEN_HERE"
 prefix = "!"
 description = "Kyrios - Advanced Discord Administration Bot"
 
+[status]
+type = "game"  # game, watching, listening, streaming, custom
+message = "Managing your server 🛡️"
+streaming_url = ""  # Twitch URLのみ有効 (typeがstreamingの場合)
+
 [database]
 path = "kyrios.db"
 backup_interval = 3600  # seconds

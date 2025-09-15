@@ -110,3 +110,15 @@ class Settings:
     @property
     def logger_log_joins(self) -> bool:
         return self.config.get("logger", {}).get("log_joins", True)
+
+    @property
+    def status_type(self) -> str:
+        return self.config.get("status", {}).get("type", "game")
+
+    @property
+    def status_message(self) -> str:
+        return self.config.get("status", {}).get("message", "Managing your server 🛡️")
+
+    @property
+    def status_streaming_url(self) -> str:
+        return self.config.get("status", {}).get("streaming_url", "")

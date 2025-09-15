@@ -38,6 +38,29 @@ class KyriosBot(commands.Bot):
 
         self.logger = logging.getLogger(__name__)
 
+    def _create_activity(self) -> discord.Activity:
+        """設定に基づいてDiscordアクティビティを作成"""
+        activity_type = self.settings.status_type.lower()
+        message = self.settings.status_message
+
+        if activity_type == "game":
+            return discord.Game(name=message)
+        elif activity_type == "watching":
+            return discord.Activity(type=discord.ActivityType.watching, name=message)
+        elif activity_type == "listening":
+            return discord.Activity(type=discord.ActivityType.listening, name=message)
+        elif activity_type == "streaming":
+            url = self.settings.status_streaming_url
+            if not url:
+                self.logger.warning("Streaming URL not configured, falling back to Game activity")
+                return discord.Game(name=message)
+            return discord.Streaming(name=message, url=url)
+        elif activity_type == "custom":
+            return discord.Activity(type=discord.ActivityType.custom, name=message)
+        else:
+            self.logger.warning(f"Unknown activity type: {activity_type}, falling back to Game")
+            return discord.Game(name=message)
+
     def _setup_logging(self) -> None:
         # 設定オブジェクトが注入されていない場合はデフォルト値を使用
         try:
@@ -99,7 +122,8 @@ class KyriosBot(commands.Bot):
                 "guild_count": len(self.guilds)
             })
 
-        activity = discord.Game(name="Managing your server 🛡️")
+        # 設定可能なステータスメッセージ
+        activity = self._create_activity()
         await self.change_presence(activity=activity)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
