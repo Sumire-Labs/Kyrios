@@ -136,20 +136,25 @@ class KyriosBot(commands.Bot):
 
 
 async def main():
-    # DIコンテナを初期化・ワイヤリング
-    container.init_resources()
+    # DIコンテナをワイヤリング
     container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar"])
 
     bot = None
     try:
+        # ボット初期化（非同期リソースを使わない）
         bot = KyriosBot()
+
+        # 非同期リソース初期化
+        await container.init_resources()
+
+        # ボット起動
         await bot.start(bot.settings.bot_token)
     except KeyboardInterrupt:
         print("\nReceived interrupt signal, shutting down...")
     except Exception as e:
         logging.error(f"Failed to start bot: {e}")
     finally:
-        container.shutdown_resources()
+        await container.shutdown_resources()
         if bot is not None and not bot.is_closed():
             await bot.close()
 
