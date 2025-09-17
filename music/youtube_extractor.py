@@ -38,20 +38,10 @@ class YouTubeExtractor:
             # postprocessorsを削除（Discord.pyで直接ストリームを使用するため不要）
         }
 
-        # FFmpeg設定 - Discord最適化 & ノイズ削減
+        # FFmpeg設定 - シンプル版（ノイズ対策）
         self.ffmpeg_opts = {
-            'before_options': (
-                '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
-                '-nostdin'
-            ),
-            'options': (
-                '-vn '  # 映像なし
-                '-ar 48000 '  # Discord推奨サンプルレート
-                '-ac 2 '  # ステレオ
-                '-ab 192k '  # ビットレート
-                '-f opus '  # Discord推奨フォーマット
-                '-filter:a "volume=0.8,dynaudnorm=f=200:g=3:r=0.3,highpass=f=85,lowpass=f=15000" '  # ノイズ削減フィルター
-            )
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin',
+            'options': '-vn -ar 48000 -ac 2 -b:a 128k'
         }
 
     async def search_track(self, query: str) -> Optional[TrackInfo]:
