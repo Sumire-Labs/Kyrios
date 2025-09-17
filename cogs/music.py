@@ -67,6 +67,8 @@ class MusicPlayerView(discord.ui.View):
         super().__init__(timeout=None)  # 永続View
         self.bot = bot
         self.guild_id = guild_id
+        self.message = None  # Embedメッセージの参照
+        self.update_task = None  # 自動更新タスク
 
     # 🎮 Row 1: メイン再生コントロール
     @discord.ui.button(emoji="⏮️", style=ButtonStyles.SECONDARY, row=0)
@@ -142,6 +144,10 @@ class MusicPlayerView(discord.ui.View):
                 if player:
                     await player.stop()
                     await self.bot.music_service.disconnect_voice(self.guild_id)
+
+                # 自動更新停止
+                self.stop_auto_update()
+
                 embed = EmbedBuilder.create_success_embed("停止", "音楽を停止し、ボイスチャンネルから退出しました")
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return  # Embed更新しない
@@ -213,6 +219,72 @@ class MusicPlayerView(discord.ui.View):
                 loop_button.style = ButtonStyles.SUCCESS
         except Exception as e:
             self.bot.logger.error(f"Button state update error: {e}")
+
+    def start_auto_update(self, message):
+        """プログレスバー自動更新開始"""
+        import asyncio
+        self.message = message
+        if self.update_task is None or self.update_task.done():
+            self.update_task = asyncio.create_task(self._auto_update_loop())
+
+    def stop_auto_update(self):
+        """自動更新停止"""
+        if self.update_task and not self.update_task.done():
+            self.update_task.cancel()
+
+    async def _auto_update_loop(self):
+        """プログレスバー自動更新ループ"""
+        try:
+            while True:
+                # 3秒間隔で更新
+                await asyncio.sleep(3)
+
+                # プレイヤーが存在するかチェック
+                player = self.bot.music_service.get_player(self.guild_id)
+                if not player or not player.is_playing():
+                    # 再生停止時は更新停止
+                    break
+
+                # Embed更新
+                await self._update_progress_only()
+
+        except asyncio.CancelledError:
+            # タスクキャンセル時
+            pass
+        except Exception as e:
+            self.bot.logger.error(f"Auto update error: {e}")
+
+    async def _update_progress_only(self):
+        """プログレスバーのみ更新（軽量版）"""
+        try:
+            if not self.message:
+                return
+
+            # 最新状態取得
+            track_data = await self.bot.music_service.get_current_track(self.guild_id)
+            session_data = await self.bot.music_service.get_session_info(self.guild_id)
+            queue_data = await self.bot.music_service.get_queue(self.guild_id)
+
+            if not track_data:
+                return
+
+            # Embed再構築
+            embed = EmbedBuilder.create_music_player_embed(track_data, session_data, queue_data)
+
+            # ボタンの状態更新
+            self._update_button_states(session_data)
+
+            # メッセージ更新
+            await self.message.edit(embed=embed, view=self)
+
+        except discord.NotFound:
+            # メッセージが削除された場合、更新停止
+            self.stop_auto_update()
+        except discord.HTTPException:
+            # レート制限等は無視
+            pass
+        except Exception as e:
+            self.bot.logger.error(f"Progress update error: {e}")
 
 
 class MusicCog(commands.Cog):
@@ -378,6 +450,9 @@ class MusicCog(commands.Cog):
 
             # ローディングメッセージを置き換え
             await message.edit(embed=embed, view=view)
+
+            # 自動更新開始
+            view.start_auto_update(message)
 
             # EventBus通知
             await self.event_bus.emit_event("music_player_displayed", {
