@@ -21,7 +21,6 @@ class MusicPlayer:
         self.current_track: Optional[Track] = None
         self.start_time: Optional[datetime] = None
         self.is_paused_flag = False
-        self.volume = 50
         self.loop_mode = LoopMode.NONE
 
     def is_playing(self) -> bool:
@@ -50,8 +49,7 @@ class MusicPlayer:
                 options=ffmpeg_opts['options']
             )
 
-            # 音量調整
-            source = discord.PCMVolumeTransformer(source, volume=self.volume / 100.0)
+            # 音量調整は削除済み (UIから音量ボタンを削除したため)
 
             # 再生開始
             self.voice_client.play(source, after=self._track_finished)
@@ -90,11 +88,6 @@ class MusicPlayer:
         if self.voice_client.is_playing() or self.voice_client.is_paused():
             self.voice_client.stop()  # これにより_track_finishedが呼ばれる
 
-    async def set_volume(self, volume: int):
-        """音量設定 (0-100)"""
-        self.volume = max(0, min(100, volume))
-        if hasattr(self.voice_client.source, 'volume'):
-            self.voice_client.source.volume = self.volume / 100.0
 
     async def set_loop_mode(self, mode: LoopMode):
         """ループモード設定"""
@@ -282,7 +275,6 @@ class MusicService:
             return {}
 
         return {
-            'volume': player.volume,
             'is_paused': player.is_paused(),
             'loop_mode': player.loop_mode.value
         }
@@ -299,7 +291,7 @@ class MusicService:
             for item in queue_items
         ]
 
-    async def connect_voice(self, voice_channel: discord.VoiceChannel) -> bool:
+    async def connect_voice(self, voice_channel: discord.VoiceChannel, text_channel: discord.TextChannel = None) -> bool:
         """ボイスチャンネル接続"""
         try:
             voice_client = await voice_channel.connect()
@@ -307,10 +299,11 @@ class MusicService:
             self.players[voice_channel.guild.id] = player
 
             # セッション作成
+            text_channel_id = text_channel.id if text_channel else voice_channel.id
             await self.database.create_session(
                 guild_id=voice_channel.guild.id,
                 voice_channel_id=voice_channel.id,
-                text_channel_id=voice_channel.guild.system_channel.id if voice_channel.guild.system_channel else voice_channel.id
+                text_channel_id=text_channel_id
             )
 
             return True

@@ -267,7 +267,7 @@ class MusicCog(commands.Cog):
 
             if not existing_player:
                 # ボイスチャンネル接続
-                connected = await self.music_service.connect_voice(interaction.user.voice.channel)
+                connected = await self.music_service.connect_voice(interaction.user.voice.channel, interaction.channel)
                 if not connected:
                     error_embed = EmbedBuilder.create_error_embed("接続エラー", "ボイスチャンネルへの接続に失敗しました")
                     await message.edit(embed=error_embed)

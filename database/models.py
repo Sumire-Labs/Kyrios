@@ -191,7 +191,6 @@ class MusicSession(SQLModel, table=True):
     voice_channel_id: int
     text_channel_id: int
     current_track_id: Optional[int] = None
-    volume: int = 50
     is_paused: bool = False
     loop_mode: LoopMode = LoopMode.NONE
     created_at: datetime = Field(default_factory=datetime.now)
