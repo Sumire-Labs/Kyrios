@@ -1,4 +1,5 @@
 # type: ignore
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -73,12 +74,18 @@ class QuickAddModal(discord.ui.Modal):
 class MusicPlayerView(discord.ui.View):
     """オールインワン音楽プレイヤー - Kyriosパターン準拠"""
 
+    # クラス変数でアクティブなインスタンスを追跡
+    _active_instances = set()
+
     def __init__(self, bot, guild_id: int):
         super().__init__(timeout=None)  # 永続View
         self.bot = bot
         self.guild_id = guild_id
         self.message = None  # Embedメッセージの参照
         self.update_task = None  # 自動更新タスク
+
+        # このインスタンスをアクティブリストに追加
+        MusicPlayerView._active_instances.add(self)
 
     # 🎮 Row 1: メイン再生コントロール
     @discord.ui.button(emoji="⏮️", style=ButtonStyles.SECONDARY, row=0)
@@ -146,8 +153,12 @@ class MusicPlayerView(discord.ui.View):
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
             elif action == "skip":
-                await player.skip()
-                embed = EmbedBuilder.create_success_embed("スキップ", "次の楽曲にスキップしました")
+                # MusicServiceの新しいスキップメソッドを使用
+                success = await self.bot.music_service.skip_to_next(self.guild_id)
+                if success:
+                    embed = EmbedBuilder.create_success_embed("スキップ", "次の楽曲にスキップしました")
+                else:
+                    embed = EmbedBuilder.create_error_embed("スキップエラー", "次の楽曲への移行に失敗しました")
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
             elif action == "loop":
@@ -238,7 +249,6 @@ class MusicPlayerView(discord.ui.View):
 
     def start_auto_update(self, message):
         """プログレスバー自動更新開始"""
-        import asyncio
         self.message = message
         if self.update_task is None or self.update_task.done():
             self.update_task = asyncio.create_task(self._auto_update_loop())
@@ -247,6 +257,21 @@ class MusicPlayerView(discord.ui.View):
         """自動更新停止"""
         if self.update_task and not self.update_task.done():
             self.update_task.cancel()
+
+        # インスタンスをアクティブリストから削除
+        MusicPlayerView._active_instances.discard(self)
+
+    @classmethod
+    def cleanup_all_tasks(cls):
+        """全てのアクティブなViewのタスクを停止"""
+        try:
+            for instance in cls._active_instances.copy():
+                if instance.update_task and not instance.update_task.done():
+                    instance.update_task.cancel()
+            cls._active_instances.clear()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error during cleanup_all_tasks: {e}")
 
     async def _auto_update_loop(self):
         """プログレスバー自動更新ループ"""
@@ -265,10 +290,13 @@ class MusicPlayerView(discord.ui.View):
                 await self._update_progress_only()
 
         except asyncio.CancelledError:
-            # タスクキャンセル時
-            pass
+            # タスクキャンセル時 - 正常終了
+            self.bot.logger.debug(f"Auto update task cancelled for guild {self.guild_id}")
         except Exception as e:
             self.bot.logger.error(f"Auto update error: {e}")
+        finally:
+            # 終了時はインスタンスをクリーンアップ
+            MusicPlayerView._active_instances.discard(self)
 
     async def _update_progress_only(self):
         """プログレスバーのみ更新（軽量版）"""
@@ -479,6 +507,31 @@ class MusicCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Music player display error: {e}")
+
+    async def cog_unload(self):
+        """Cog終了時のクリーンアップ"""
+        try:
+            self.logger.info("Cleaning up MusicCog...")
+
+            # 全てのアクティブプレイヤーのタスクを停止
+            if hasattr(self.bot, 'music_service') and self.bot.music_service:
+                for guild_id, player in self.bot.music_service.players.items():
+                    try:
+                        # 音楽停止
+                        await player.stop()
+                        # ボイスチャンネル切断
+                        if player.voice_client.is_connected():
+                            await player.voice_client.disconnect()
+                    except Exception as e:
+                        self.logger.error(f"Error stopping player for guild {guild_id}: {e}")
+
+            # MusicPlayerViewの全タスク停止
+            MusicPlayerView.cleanup_all_tasks()
+
+            self.logger.info("MusicCog cleanup completed")
+
+        except Exception as e:
+            self.logger.error(f"Error during MusicCog cleanup: {e}")
 
 
 async def setup(bot):
