@@ -22,9 +22,9 @@ class YouTubeExtractor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-        # yt-dlp設定
+        # yt-dlp設定 - 高品質音声用
         self.ytdl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best',
             'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
             'restrictfilenames': True,
             'noplaylist': True,
@@ -37,13 +37,28 @@ class YouTubeExtractor:
             'source_address': '0.0.0.0',
             'extractaudio': True,
             'audioformat': 'opus',
-            'audioquality': '128K',
+            'audioquality': '0',  # 最高品質
+            'postprocessors': [{
+                'key': 'FFmpegAudioConvertor',
+                'preferredcodec': 'opus',
+                'preferredquality': '192',
+            }],
         }
 
-        # FFmpeg設定
+        # FFmpeg設定 - Discord最適化 & ノイズ削減
         self.ffmpeg_opts = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn'
+            'before_options': (
+                '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
+                '-nostdin'
+            ),
+            'options': (
+                '-vn '  # 映像なし
+                '-ar 48000 '  # Discord推奨サンプルレート
+                '-ac 2 '  # ステレオ
+                '-ab 192k '  # ビットレート
+                '-f opus '  # Discord推奨フォーマット
+                '-filter:a "volume=0.8,dynaudnorm=f=200:g=3:r=0.3,highpass=f=85,lowpass=f=15000" '  # ノイズ削減フィルター
+            )
         }
 
     async def search_track(self, query: str) -> Optional[TrackInfo]:
