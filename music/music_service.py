@@ -291,7 +291,7 @@ class MusicService:
             for item in queue_items
         ]
 
-    async def connect_voice(self, voice_channel: discord.VoiceChannel, text_channel: discord.TextChannel = None) -> bool:
+    async def connect_voice(self, voice_channel: discord.VoiceChannel, text_channel: Optional[discord.TextChannel] = None) -> bool:
         """ボイスチャンネル接続"""
         try:
             voice_client = await voice_channel.connect()

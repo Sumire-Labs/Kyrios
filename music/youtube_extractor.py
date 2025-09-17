@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import yt_dlp
+import yt_dlp  # type: ignore
 from typing import Dict, Optional, List
 from dataclasses import dataclass
 
@@ -67,7 +67,7 @@ class YouTubeExtractor:
 
     def _search_sync(self, query: str) -> Optional[TrackInfo]:
         """同期検索処理 (内部使用)"""
-        ytdl = yt_dlp.YoutubeDL(self.ytdl_opts)
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
 
         try:
             # YouTube検索
@@ -97,7 +97,7 @@ class YouTubeExtractor:
 
     def _search_multiple_sync(self, query: str, limit: int) -> List[TrackInfo]:
         """複数検索の同期処理"""
-        ytdl = yt_dlp.YoutubeDL(self.ytdl_opts)
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
         tracks = []
 
         try:
@@ -135,7 +135,7 @@ class YouTubeExtractor:
 
     def _get_audio_source_sync(self, url: str) -> Optional[str]:
         """音声ソース取得の同期処理"""
-        ytdl = yt_dlp.YoutubeDL(self.ytdl_opts)
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
 
         try:
             info = ytdl.extract_info(url, download=False)
