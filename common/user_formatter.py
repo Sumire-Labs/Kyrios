@@ -68,6 +68,21 @@ class UserFormatter:
         return f"<t:{int(dt.timestamp())}:{style}>"
 
     @staticmethod
+    def format_id(id_value: int) -> str:
+        """IDをコードブロック形式でフォーマット"""
+        return f"`{id_value}`"
+
+    @staticmethod
+    def format_code_inline(value: str) -> str:
+        """値をインラインコードブロックでフォーマット"""
+        return f"`{value}`"
+
+    @staticmethod
+    def format_count(count: int, unit: str) -> str:
+        """数値を単位付きでフォーマット"""
+        return f"{count}{unit}"
+
+    @staticmethod
     def format_role_list(roles: List[discord.Role], max_roles: int = 10) -> str:
         """ロール一覧をフォーマット"""
         if not roles:

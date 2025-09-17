@@ -26,19 +26,46 @@ class TicketPriority(int, Enum):
 
 
 class LogType(str, Enum):
+    # メッセージ関連
     MESSAGE_DELETE = "message_delete"
     MESSAGE_EDIT = "message_edit"
+
+    # メンバー関連
     MEMBER_JOIN = "member_join"
     MEMBER_LEAVE = "member_leave"
     MEMBER_BAN = "member_ban"
     MEMBER_UNBAN = "member_unban"
     MEMBER_KICK = "member_kick"
     MEMBER_TIMEOUT = "member_timeout"
+    MEMBER_UPDATE = "member_update"
+
+    # ロール関連
     ROLE_ADD = "role_add"
     ROLE_REMOVE = "role_remove"
+    ROLE_CREATE = "role_create"
+    ROLE_DELETE = "role_delete"
+    ROLE_UPDATE = "role_update"
+
+    # チャンネル関連
     CHANNEL_CREATE = "channel_create"
     CHANNEL_DELETE = "channel_delete"
+    CHANNEL_UPDATE = "channel_update"
+
+    # サーバー関連
+    GUILD_UPDATE = "guild_update"
+    GUILD_EMOJIS_UPDATE = "guild_emojis_update"
+    GUILD_STICKERS_UPDATE = "guild_stickers_update"
+
+    # WebSocket関連
+    WEBSOCKET_CONNECT = "websocket_connect"
+    WEBSOCKET_DISCONNECT = "websocket_disconnect"
+    WEBSOCKET_RECONNECT = "websocket_reconnect"
+    WEBSOCKET_ERROR = "websocket_error"
+
+    # システム関連
     SYSTEM_EVENT = "system_event"
+    BOT_READY = "bot_ready"
+    BOT_DISCONNECT = "bot_disconnect"
 
 
 class Ticket(SQLModel, table=True):

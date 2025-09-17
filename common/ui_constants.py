@@ -21,19 +21,46 @@ class UIColors:
 
     # ログタイプ別色
     LOG_COLORS = {
+        # メッセージ関連
         LogType.MESSAGE_DELETE: discord.Color.red(),
         LogType.MESSAGE_EDIT: discord.Color.orange(),
+
+        # メンバー関連
         LogType.MEMBER_JOIN: discord.Color.green(),
         LogType.MEMBER_LEAVE: discord.Color.yellow(),
         LogType.MEMBER_BAN: discord.Color.red(),
         LogType.MEMBER_UNBAN: discord.Color.green(),
         LogType.MEMBER_KICK: discord.Color.red(),
         LogType.MEMBER_TIMEOUT: discord.Color.orange(),
+        LogType.MEMBER_UPDATE: discord.Color.blue(),
+
+        # ロール関連
         LogType.ROLE_ADD: discord.Color.blue(),
         LogType.ROLE_REMOVE: discord.Color.purple(),
+        LogType.ROLE_CREATE: discord.Color.green(),
+        LogType.ROLE_DELETE: discord.Color.red(),
+        LogType.ROLE_UPDATE: discord.Color.blue(),
+
+        # チャンネル関連
         LogType.CHANNEL_CREATE: discord.Color.green(),
         LogType.CHANNEL_DELETE: discord.Color.red(),
-        LogType.SYSTEM_EVENT: discord.Color.blue()
+        LogType.CHANNEL_UPDATE: discord.Color.blue(),
+
+        # サーバー関連
+        LogType.GUILD_UPDATE: discord.Color.blue(),
+        LogType.GUILD_EMOJIS_UPDATE: discord.Color.yellow(),
+        LogType.GUILD_STICKERS_UPDATE: discord.Color.yellow(),
+
+        # WebSocket関連
+        LogType.WEBSOCKET_CONNECT: discord.Color.green(),
+        LogType.WEBSOCKET_DISCONNECT: discord.Color.red(),
+        LogType.WEBSOCKET_RECONNECT: discord.Color.orange(),
+        LogType.WEBSOCKET_ERROR: discord.Color.red(),
+
+        # システム関連
+        LogType.SYSTEM_EVENT: discord.Color.blue(),
+        LogType.BOT_READY: discord.Color.green(),
+        LogType.BOT_DISCONNECT: discord.Color.red()
     }
 
 
@@ -81,19 +108,46 @@ class UIEmojis:
 
     # ログタイプ別絵文字
     LOG_EMOJIS = {
+        # メッセージ関連
         LogType.MESSAGE_DELETE: "🗑️",
         LogType.MESSAGE_EDIT: "✏️",
+
+        # メンバー関連
         LogType.MEMBER_JOIN: "📥",
         LogType.MEMBER_LEAVE: "📤",
         LogType.MEMBER_BAN: "🔨",
         LogType.MEMBER_UNBAN: "🔓",
         LogType.MEMBER_KICK: "👢",
         LogType.MEMBER_TIMEOUT: "⏰",
+        LogType.MEMBER_UPDATE: "✏️",
+
+        # ロール関連
         LogType.ROLE_ADD: "🏷️",
         LogType.ROLE_REMOVE: "🚫",
+        LogType.ROLE_CREATE: "🆕",
+        LogType.ROLE_DELETE: "🗑️",
+        LogType.ROLE_UPDATE: "✏️",
+
+        # チャンネル関連
         LogType.CHANNEL_CREATE: "📝",
         LogType.CHANNEL_DELETE: "🗂️",
-        LogType.SYSTEM_EVENT: "⚙️"
+        LogType.CHANNEL_UPDATE: "✏️",
+
+        # サーバー関連
+        LogType.GUILD_UPDATE: "🏛️",
+        LogType.GUILD_EMOJIS_UPDATE: "😀",
+        LogType.GUILD_STICKERS_UPDATE: "🎯",
+
+        # WebSocket関連
+        LogType.WEBSOCKET_CONNECT: "🔗",
+        LogType.WEBSOCKET_DISCONNECT: "🔌",
+        LogType.WEBSOCKET_RECONNECT: "🔄",
+        LogType.WEBSOCKET_ERROR: "⚠️",
+
+        # システム関連
+        LogType.SYSTEM_EVENT: "⚙️",
+        LogType.BOT_READY: "🚀",
+        LogType.BOT_DISCONNECT: "😴"
     }
 
 
