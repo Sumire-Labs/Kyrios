@@ -49,7 +49,7 @@ class UIEmojis:
 
     # ステータス
     ONLINE = "🟢"
-    OFFLINE = "🔴"
+    OFFLINE = "⚫"
     IDLE = "🟡"
     DND = "🔴"
 
