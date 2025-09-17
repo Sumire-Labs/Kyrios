@@ -127,6 +127,101 @@ class TicketMessage(SQLModel, table=True):
     is_system_message: bool = False        # システムメッセージフラグ
 ```
 
+### 5. AvatarHistory モデル
+
+```python
+class AvatarHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int                           # Discord ユーザーID
+    guild_id: Optional[int] = None          # サーバーID（None=グローバル）
+    history_type: AvatarHistoryType        # 変更タイプ
+    old_avatar_url: Optional[str] = None    # 変更前URL
+    new_avatar_url: Optional[str] = None    # 変更後URL
+    dominant_color: Optional[str] = None    # 主要色（16進）
+    image_format: Optional[str] = None      # 画像形式
+    image_size: Optional[int] = None        # ファイルサイズ
+    timestamp: datetime = Field(default_factory=datetime.now)
+```
+
+**AvatarHistoryType定義:**
+```python
+class AvatarHistoryType(str, Enum):
+    AVATAR_CHANGE = "avatar_change"        # アバター変更
+    BANNER_CHANGE = "banner_change"        # バナー変更
+    SERVER_AVATAR_CHANGE = "server_avatar_change"  # サーバー専用アバター変更
+```
+
+### 6. UserAvatarStats モデル
+
+```python
+class UserAvatarStats(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(unique=True)       # Discord ユーザーID（ユニーク）
+    total_avatar_changes: int = 0           # アバター変更回数
+    total_banner_changes: int = 0           # バナー変更回数
+    first_seen: datetime = Field(default_factory=datetime.now)
+    last_avatar_change: Optional[datetime] = None
+    last_banner_change: Optional[datetime] = None
+    most_used_format: Optional[str] = None  # よく使う画像形式
+    average_change_frequency: Optional[float] = None  # 平均変更頻度（日）
+```
+
+### 7. 音楽システムモデル
+
+#### Track モデル
+```python
+class Track(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int                          # Discord サーバーID
+    title: str                             # 楽曲タイトル
+    artist: str                            # アーティスト名
+    url: str                              # 楽曲URL
+    source: MusicSource = MusicSource.YOUTUBE  # 音楽ソース
+    duration: int                          # 再生時間（秒）
+    thumbnail_url: Optional[str] = None     # サムネイルURL
+    requested_by: int                      # リクエストユーザーID
+    created_at: datetime = Field(default_factory=datetime.now)
+```
+
+#### Queue モデル
+```python
+class Queue(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int                          # Discord サーバーID
+    track_id: int                          # 楽曲ID（Track外部キー）
+    position: int                          # キュー内位置
+    added_by: int                          # 追加者ユーザーID
+    created_at: datetime = Field(default_factory=datetime.now)
+```
+
+#### MusicSession モデル
+```python
+class MusicSession(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int = Field(unique=True)      # Discord サーバーID（ユニーク）
+    voice_channel_id: int                   # ボイスチャンネルID
+    text_channel_id: int                    # テキストチャンネルID
+    current_track_id: Optional[int] = None  # 現在再生中楽曲ID
+    is_paused: bool = False                # 一時停止状態
+    loop_mode: LoopMode = LoopMode.NONE    # ループモード
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+```
+
+**音楽システム Enum定義:**
+```python
+class MusicSource(str, Enum):
+    YOUTUBE = "youtube"                     # YouTube
+    SPOTIFY = "spotify"                     # Spotify（未対応）
+    SOUNDCLOUD = "soundcloud"               # SoundCloud（未対応）
+    URL = "url"                            # 直接URL
+
+class LoopMode(str, Enum):
+    NONE = "none"                          # リピートなし
+    TRACK = "track"                        # 楽曲リピート
+    QUEUE = "queue"                        # キューリピート
+```
+
 ## データベースマネージャー
 
 ### DatabaseManager クラス
@@ -216,7 +311,75 @@ settings = await db_manager.create_or_update_guild_settings(
     guild_id=123456789,
     log_channel_id=111222333,
     ticket_category_id=444555666,
-    features_enabled="tickets,logger,auto_mod"
+    features_enabled="tickets,logger,music"
+)
+```
+
+#### 音楽システム操作
+```python
+# 楽曲作成
+track = await db_manager.create_track(
+    guild_id=123456789,
+    title="Never Gonna Give You Up",
+    artist="Rick Astley",
+    url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    duration=212,
+    thumbnail_url="https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+    requested_by=555666777,
+    source=MusicSource.YOUTUBE
+)
+
+# キューに追加
+queue_item = await db_manager.add_to_queue(
+    guild_id=123456789,
+    track_id=track.id,
+    added_by=555666777
+)
+
+# 音楽セッション作成・更新
+session = await db_manager.create_session(
+    guild_id=123456789,
+    voice_channel_id=888999000,
+    text_channel_id=111222333
+)
+
+# 現在再生中の楽曲を設定
+await db_manager.update_session_current_track(
+    guild_id=123456789,
+    track_id=track.id
+)
+
+# キューから次の楽曲を取得
+next_item = await db_manager.get_next_in_queue(guild_id=123456789)
+
+# キューをクリア
+cleared_count = await db_manager.clear_queue(guild_id=123456789)
+
+# セッション削除
+await db_manager.delete_session(guild_id=123456789)
+```
+
+#### アバターシステム操作
+```python
+# アバター履歴記録
+history = await db_manager.record_avatar_change(
+    user_id=555666777,
+    guild_id=123456789,  # None でグローバル
+    history_type=AvatarHistoryType.AVATAR_CHANGE,
+    old_avatar_url="https://old-avatar-url.com",
+    new_avatar_url="https://new-avatar-url.com",
+    dominant_color="#ff0000",
+    image_format="png",
+    image_size=45231
+)
+
+# ユーザー統計取得
+stats = await db_manager.get_user_avatar_stats(user_id=555666777)
+
+# アバター履歴取得
+history_list = await db_manager.get_avatar_history(
+    user_id=555666777,
+    limit=10
 )
 ```
 
@@ -226,7 +389,11 @@ settings = await db_manager.create_or_update_guild_settings(
 ```
 GuildSettings ||--o{ Ticket : has
 GuildSettings ||--o{ Log : has
+GuildSettings ||--o{ Track : has
+GuildSettings ||--|| MusicSession : has
 Ticket ||--o{ TicketMessage : contains
+Track ||--o{ Queue : queued
+UserAvatarStats ||--o{ AvatarHistory : has
 
 GuildSettings:
 - guild_id (PK, UNIQUE)
@@ -237,31 +404,62 @@ GuildSettings:
 Ticket:
 - id (PK)
 - guild_id (FK)
-- channel_id
-- user_id
+- channel_id, user_id
 - status, priority, category
 
 Log:
 - id (PK)
 - guild_id (FK)
-- log_type
-- action, details
+- log_type, action, details
 
-TicketMessage:
+Track:
 - id (PK)
-- ticket_id (FK)
-- user_id
-- content
+- guild_id (FK)
+- title, artist, url
+- source, duration
+
+Queue:
+- id (PK)
+- guild_id (FK)
+- track_id (FK)
+- position, added_by
+
+MusicSession:
+- guild_id (PK, UNIQUE, FK)
+- voice_channel_id, text_channel_id
+- current_track_id, loop_mode
+
+AvatarHistory:
+- id (PK)
+- user_id, guild_id
+- history_type, urls, metadata
+
+UserAvatarStats:
+- user_id (PK, UNIQUE)
+- change_counts, timestamps
 ```
 
 ### インデックス戦略
 ```sql
--- パフォーマンス向上のためのインデックス
+-- 既存インデックス
 CREATE INDEX idx_ticket_guild_status ON tickets(guild_id, status);
 CREATE INDEX idx_ticket_user ON tickets(guild_id, user_id);
 CREATE INDEX idx_log_guild_type ON logs(guild_id, log_type);
 CREATE INDEX idx_log_timestamp ON logs(timestamp);
 CREATE INDEX idx_guild_settings_guild ON guild_settings(guild_id);
+
+-- 音楽システム用インデックス
+CREATE INDEX idx_track_guild ON tracks(guild_id);
+CREATE INDEX idx_track_source ON tracks(source);
+CREATE INDEX idx_queue_guild_position ON queues(guild_id, position);
+CREATE INDEX idx_queue_track ON queues(track_id);
+CREATE INDEX idx_music_session_guild ON music_sessions(guild_id);
+
+-- アバターシステム用インデックス
+CREATE INDEX idx_avatar_history_user ON avatar_histories(user_id);
+CREATE INDEX idx_avatar_history_type ON avatar_histories(history_type);
+CREATE INDEX idx_avatar_history_timestamp ON avatar_histories(timestamp);
+CREATE INDEX idx_avatar_stats_user ON user_avatar_stats(user_id);
 ```
 
 ## データベース操作パターン

@@ -19,6 +19,13 @@ class UIColors:
     AVATAR = discord.Color.blurple()
     PERFORMANCE = discord.Color.gold()
 
+    # 音楽関連色
+    MUSIC = discord.Color.purple()
+    MUSIC_PLAYING = discord.Color.green()
+    MUSIC_PAUSED = discord.Color.orange()
+    MUSIC_STOPPED = discord.Color.red()
+    MUSIC_QUEUE = discord.Color.blue()
+
     # ログタイプ別色
     LOG_COLORS = {
         # メッセージ関連
@@ -105,6 +112,24 @@ class UIEmojis:
     TICKET_OPEN = "🟢"
     TICKET_CLOSED = "🔴"
     TICKET_ASSIGNED = "👤"
+
+    # 音楽関連
+    MUSIC = "🎵"
+    PLAY = "▶️"
+    PAUSE = "⏸️"
+    STOP = "⏹️"
+    SKIP = "⏭️"
+    PREVIOUS = "⏮️"
+    VOLUME_UP = "🔊"
+    VOLUME_DOWN = "🔉"
+    VOLUME_MUTE = "🔇"
+    LOOP = "🔄"
+    SHUFFLE = "🔀"
+    QUEUE = "📋"
+    ADD_TO_QUEUE = "➕"
+    YOUTUBE = "📹"
+    SPOTIFY = "🟢"
+    SOUNDCLOUD = "🟠"
 
     # ログタイプ別絵文字
     LOG_EMOJIS = {

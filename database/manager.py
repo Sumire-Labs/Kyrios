@@ -8,7 +8,8 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 
 from .models import (Ticket, Log, GuildSettings, TicketMessage, TicketStatus, LogType,
-                      AvatarHistory, UserAvatarStats, AvatarHistoryType)
+                      AvatarHistory, UserAvatarStats, AvatarHistoryType,
+                      Track, Queue, MusicSession, MusicSource, LoopMode)
 
 
 class DatabaseManager:
@@ -291,3 +292,173 @@ class DatabaseManager:
             await session.commit()
             self.logger.info(f"Cleaned up {len(old_logs)} old log entries")
             return len(old_logs)
+
+    # 音楽システム関連メソッド
+    async def create_track(
+        self,
+        guild_id: int,
+        title: str,
+        artist: str,
+        url: str,
+        duration: int,
+        thumbnail_url: Optional[str],
+        requested_by: int,
+        source: MusicSource = MusicSource.YOUTUBE
+    ) -> Track:
+        """楽曲をデータベースに保存"""
+        async with self.transaction() as session:
+            track = Track(
+                guild_id=guild_id,
+                title=title,
+                artist=artist,
+                url=url,
+                source=source,
+                duration=duration,
+                thumbnail_url=thumbnail_url,
+                requested_by=requested_by
+            )
+            session.add(track)
+            await session.flush()  # IDを取得するためにflush
+            self.logger.info(f"Created track {track.id}: {title} for guild {guild_id}")
+            return track
+
+    async def add_to_queue(self, guild_id: int, track_id: int, added_by: int) -> Queue:
+        """楽曲をキューに追加"""
+        async with self.transaction() as session:
+            # 現在のキュー位置を取得
+            statement = select(Queue).where(Queue.guild_id == guild_id).order_by(desc(Queue.position))
+            result = await session.execute(statement)
+            last_queue_item = result.scalars().first()
+
+            next_position = (last_queue_item.position + 1) if last_queue_item else 1
+
+            queue_item = Queue(
+                guild_id=guild_id,
+                track_id=track_id,
+                position=next_position,
+                added_by=added_by
+            )
+            session.add(queue_item)
+            await session.flush()
+            self.logger.info(f"Added track {track_id} to queue position {next_position} for guild {guild_id}")
+            return queue_item
+
+    async def get_next_in_queue(self, guild_id: int) -> Optional[Queue]:
+        """キューの次の楽曲を取得"""
+        async with self.async_session() as session:
+            statement = select(Queue).where(Queue.guild_id == guild_id).order_by(Queue.position).limit(1)
+            result = await session.execute(statement)
+            return result.scalars().first()
+
+    async def remove_from_queue(self, guild_id: int, queue_id: int) -> bool:
+        """キューから楽曲を削除"""
+        async with self.transaction() as session:
+            statement = select(Queue).where(Queue.guild_id == guild_id, Queue.id == queue_id)
+            result = await session.execute(statement)
+            queue_item = result.scalars().first()
+
+            if queue_item:
+                await session.delete(queue_item)
+                self.logger.info(f"Removed queue item {queue_id} from guild {guild_id}")
+                return True
+            return False
+
+    async def get_guild_queue(self, guild_id: int) -> List[dict]:
+        """ギルドのキューを取得 (楽曲情報付き)"""
+        async with self.async_session() as session:
+            statement = select(Queue, Track).join(Track, Queue.track_id == Track.id).where(
+                Queue.guild_id == guild_id
+            ).order_by(Queue.position)
+            result = await session.execute(statement)
+
+            queue_items = []
+            for queue_item, track in result.all():
+                queue_items.append({
+                    'queue_id': queue_item.id,
+                    'position': queue_item.position,
+                    'title': track.title,
+                    'artist': track.artist,
+                    'duration': track.duration,
+                    'url': track.url,
+                    'thumbnail_url': track.thumbnail_url
+                })
+
+            return queue_items
+
+    async def clear_queue(self, guild_id: int) -> int:
+        """キューをクリア"""
+        async with self.transaction() as session:
+            statement = select(Queue).where(Queue.guild_id == guild_id)
+            result = await session.execute(statement)
+            queue_items = list(result.scalars().all())
+
+            for item in queue_items:
+                await session.delete(item)
+
+            self.logger.info(f"Cleared {len(queue_items)} items from queue for guild {guild_id}")
+            return len(queue_items)
+
+    async def get_track_by_id(self, track_id: int) -> Optional[Track]:
+        """トラックIDで楽曲を取得"""
+        async with self.async_session() as session:
+            statement = select(Track).where(Track.id == track_id)
+            result = await session.execute(statement)
+            return result.scalars().first()
+
+    async def create_session(
+        self,
+        guild_id: int,
+        voice_channel_id: int,
+        text_channel_id: int
+    ) -> MusicSession:
+        """音楽セッションを作成"""
+        async with self.transaction() as session:
+            # 既存セッションがあれば削除
+            statement = select(MusicSession).where(MusicSession.guild_id == guild_id)
+            result = await session.execute(statement)
+            existing = result.scalars().first()
+            if existing:
+                await session.delete(existing)
+
+            music_session = MusicSession(
+                guild_id=guild_id,
+                voice_channel_id=voice_channel_id,
+                text_channel_id=text_channel_id
+            )
+            session.add(music_session)
+            await session.flush()
+            self.logger.info(f"Created music session for guild {guild_id}")
+            return music_session
+
+    async def update_session_current_track(self, guild_id: int, track_id: int) -> bool:
+        """セッションの現在楽曲を更新"""
+        async with self.transaction() as session:
+            statement = select(MusicSession).where(MusicSession.guild_id == guild_id)
+            result = await session.execute(statement)
+            music_session = result.scalars().first()
+
+            if music_session:
+                music_session.current_track_id = track_id
+                music_session.updated_at = datetime.now()
+                return True
+            return False
+
+    async def delete_session(self, guild_id: int) -> bool:
+        """音楽セッションを削除"""
+        async with self.transaction() as session:
+            statement = select(MusicSession).where(MusicSession.guild_id == guild_id)
+            result = await session.execute(statement)
+            music_session = result.scalars().first()
+
+            if music_session:
+                await session.delete(music_session)
+                self.logger.info(f"Deleted music session for guild {guild_id}")
+                return True
+            return False
+
+    async def get_session(self, guild_id: int) -> Optional[MusicSession]:
+        """音楽セッションを取得"""
+        async with self.async_session() as session:
+            statement = select(MusicSession).where(MusicSession.guild_id == guild_id)
+            result = await session.execute(statement)
+            return result.scalars().first()

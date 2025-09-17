@@ -145,7 +145,23 @@ class UserFormatter:
 
     @staticmethod
     def format_duration(seconds: int) -> str:
-        """秒数を時間形式でフォーマット"""
+        """秒数を時間形式でフォーマット (音楽用に最適化)"""
+        if seconds < 60:
+            return f"0:{seconds:02d}"
+        elif seconds < 3600:
+            minutes = seconds // 60
+            remaining_seconds = seconds % 60
+            return f"{minutes}:{remaining_seconds:02d}"
+        else:
+            hours = seconds // 3600
+            remaining_total_seconds = seconds % 3600
+            remaining_minutes = remaining_total_seconds // 60
+            remaining_seconds = remaining_total_seconds % 60
+            return f"{hours}:{remaining_minutes:02d}:{remaining_seconds:02d}"
+
+    @staticmethod
+    def format_duration_japanese(seconds: int) -> str:
+        """秒数を日本語時間形式でフォーマット"""
         if seconds < 60:
             return f"{seconds}秒"
         elif seconds < 3600:
@@ -168,6 +184,29 @@ class UserFormatter:
                 parts.append(f"{remaining_seconds}秒")
 
             return "".join(parts)
+
+    @staticmethod
+    def create_progress_bar(current: int, total: int, length: int = 20) -> str:
+        """音楽プログレスバー作成"""
+        if total <= 0:
+            return f"{UserFormatter.format_duration(0)} {'▱' * length} {UserFormatter.format_duration(0)}"
+
+        progress = min(current / total, 1.0)
+        filled = int(progress * length)
+
+        bar = "▰" * filled + "▱" * (length - filled)
+
+        current_time = UserFormatter.format_duration(current)
+        total_time = UserFormatter.format_duration(total)
+
+        return f"{current_time} {bar} {total_time}"
+
+    @staticmethod
+    def format_progress_bar(current: int, total: int) -> str:
+        """シンプルな時間表示付きプログレスバー"""
+        bar = UserFormatter.create_progress_bar(current, total, 15)
+        percentage = min((current / total) * 100, 100) if total > 0 else 0
+        return f"{bar} ({percentage:.0f}%)"
 
     @staticmethod
     def format_percentage(value: float, decimal_places: int = 1) -> str:
