@@ -168,9 +168,42 @@ class MusicService:
         requested_by: int,
         voice_channel: discord.VoiceChannel
     ) -> TrackInfo:
-        """楽曲検索・キュー追加"""
-        # YouTube検索
-        track_info = await self.youtube_extractor.search_track(query)
+        """楽曲検索・キュー追加（Spotify対応・制限チェック付き）"""
+        track_info = None
+        music_source = MusicSource.YOUTUBE
+
+        # Spotify URL判定
+        if self.youtube_extractor.is_spotify_url(query):
+            self.logger.info(f"Spotify URL detected: {query}")
+            track_info = await self.youtube_extractor.extract_spotify_track(query)
+            music_source = MusicSource.SPOTIFY
+
+        # YouTube URL判定
+        elif self.youtube_extractor.is_url(query):
+            self.logger.info(f"YouTube URL detected: {query}")
+            track_info = await self.youtube_extractor.search_track(query)
+            music_source = MusicSource.YOUTUBE
+
+            # YouTube URLの制限チェック
+            if track_info:
+                availability = await self.youtube_extractor.check_video_availability(track_info.url)
+                if not availability.get("available", True):
+                    restriction_type = availability.get("restriction_type", "unknown")
+                    user_message = self.youtube_extractor.get_restriction_message(restriction_type)
+                    raise Exception(f"{user_message} (URL: {track_info.url})")
+
+        # 通常の検索（Spotifyフォールバック付き）
+        else:
+            self.logger.info(f"Performing smart search with fallback for: {query}")
+            track_info = await self.youtube_extractor.smart_search_with_fallback(query)
+
+            # sourceを適切に設定
+            if track_info and track_info.source == "spotify_via_youtube":
+                music_source = MusicSource.SPOTIFY
+            else:
+                music_source = MusicSource.YOUTUBE
+
+        # 検索結果チェック
         if not track_info:
             raise Exception("楽曲が見つかりませんでした")
 
@@ -183,7 +216,7 @@ class MusicService:
             duration=track_info.duration,
             thumbnail_url=track_info.thumbnail_url,
             requested_by=requested_by,
-            source=MusicSource.YOUTUBE
+            source=music_source
         )
 
         # キューに追加
@@ -194,9 +227,11 @@ class MusicService:
             "guild_id": guild_id,
             "track_id": track.id,
             "title": track_info.title,
-            "requested_by": requested_by
+            "requested_by": requested_by,
+            "source": music_source.value
         })
 
+        self.logger.info(f"Added track via {music_source.value}: {track_info.title}")
         return track_info
 
     async def start_player(self, guild_id: int) -> bool:
@@ -210,7 +245,7 @@ class MusicService:
             return False
 
     async def play_next(self, guild_id: int):
-        """次の楽曲を再生"""
+        """次の楽曲を再生（制限動画対応強化版）"""
         player = self.players.get(guild_id)
         if not player:
             return
@@ -225,26 +260,40 @@ class MusicService:
         # 楽曲情報を取得
         track = await self.database.get_track_by_id(queue_item.track_id)
         if not track:
-            # 楽曲が見つからない場合、次へ
+            # 楽曲が見つからない場合、キューから削除して次へ
             await self.database.remove_from_queue(guild_id, queue_item.id)
             await self.play_next(guild_id)
             return
 
-        # 再生開始
-        await player.play_track(track)
+        try:
+            # 再生開始を試行
+            await player.play_track(track)
 
-        # キューから削除
-        await self.database.remove_from_queue(guild_id, queue_item.id)
+            # 成功時のみキューから削除
+            await self.database.remove_from_queue(guild_id, queue_item.id)
 
-        # セッション更新
-        await self.database.update_session_current_track(guild_id, track.id)
+            # セッション更新
+            await self.database.update_session_current_track(guild_id, track.id)
 
-        # EventBus通知
-        await self.event_bus.emit_event("track_started", {
-            "guild_id": guild_id,
-            "track_id": track.id,
-            "title": track.title
-        })
+            # EventBus通知
+            await self.event_bus.emit_event("track_started", {
+                "guild_id": guild_id,
+                "track_id": track.id,
+                "title": track.title
+            })
+
+        except Exception as e:
+            # 再生失敗時の処理
+            self.logger.error(f"Failed to play track '{track.title}' in guild {guild_id}: {e}")
+
+            # 失敗した楽曲もキューから削除（無限ループ防止）
+            await self.database.remove_from_queue(guild_id, queue_item.id)
+
+            # 失敗通知
+            await self._notify_track_failed(guild_id, track, str(e))
+
+            # 次の楽曲に自動移行
+            await self.play_next(guild_id)
 
     async def _handle_queue_empty(self, guild_id: int):
         """キュー空の処理"""
@@ -283,6 +332,7 @@ class MusicService:
             'duration': track.duration,
             'position': player.get_position(),
             'thumbnail_url': track.thumbnail_url,
+            'source': track.source,  # ソース情報を追加
             'requested_by_name': 'Unknown',  # ユーザー情報は別途取得
             'requested_by_avatar': None
         }
@@ -340,6 +390,34 @@ class MusicService:
 
         # セッション削除
         await self.database.delete_session(guild_id)
+
+    async def _notify_track_failed(self, guild_id: int, track, error_message: str):
+        """楽曲再生失敗の通知"""
+        try:
+            # YouTubeExtractorから制限タイプを判定
+            restriction_type = "unknown"
+            user_message = "⚠️ 再生できない動画です"
+
+            # エラーメッセージから制限タイプを検出
+            if hasattr(self, 'youtube_extractor'):
+                restriction_type = self.youtube_extractor._detect_restriction_type(error_message)
+                user_message = self.youtube_extractor.get_restriction_message(restriction_type)
+
+            # EventBus通知（ログ記録用）
+            await self.event_bus.emit_event("track_failed", {
+                "guild_id": guild_id,
+                "track_id": track.id,
+                "track_title": track.title,
+                "track_url": track.url,
+                "error_message": error_message,
+                "restriction_type": restriction_type,
+                "user_message": user_message
+            })
+
+            self.logger.warning(f"Track failed in guild {guild_id}: {track.title} - {restriction_type}")
+
+        except Exception as e:
+            self.logger.error(f"Error notifying track failure: {e}")
 
     async def skip_to_next(self, guild_id: int) -> bool:
         """次楽曲にスキップ（UI更新用 - 完了まで待機）"""
