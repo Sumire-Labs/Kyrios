@@ -47,8 +47,13 @@ class YouTubeExtractor:
     async def search_track(self, query: str) -> Optional[TrackInfo]:
         """楽曲検索 (非同期) - 単一結果"""
         try:
-            # asyncio.to_thread でノンブロッキング実行
-            track_info = await asyncio.to_thread(self._search_sync, query)
+            # URL判定：直接URLの場合は検索ではなく直接抽出
+            if self.is_url(query):
+                self.logger.info(f"Direct URL extraction: {query}")
+                track_info = await asyncio.to_thread(self._extract_direct_url, query)
+            else:
+                # 検索処理
+                track_info = await asyncio.to_thread(self._search_sync, query)
             return track_info
         except Exception as e:
             self.logger.error(f"YouTube search error: {e}")
@@ -137,6 +142,36 @@ class YouTubeExtractor:
             return f"{query} music OR song"
 
         return query
+
+    def _extract_direct_url(self, url: str) -> Optional[TrackInfo]:
+        """直接URL抽出の同期処理"""
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
+
+        try:
+            self.logger.info(f"Extracting direct URL: {url}")
+
+            # URLから直接メタデータを取得（検索しない）
+            info = ytdl.extract_info(url, download=False)
+
+            if not info:
+                return None
+
+            # TrackInfo作成
+            track_info = TrackInfo(
+                title=info.get('title', 'Unknown Title'),
+                artist=info.get('uploader', 'Unknown Artist'),
+                url=info.get('webpage_url', url),
+                duration=info.get('duration', 0) or 0,
+                thumbnail_url=info.get('thumbnail'),
+                source="youtube"
+            )
+
+            self.logger.info(f"Direct extraction successful: {track_info.title} by {track_info.artist}")
+            return track_info
+
+        except Exception as e:
+            self.logger.error(f"Direct URL extraction error: {e}")
+            return None
 
     def _search_multiple_sync(self, query: str, limit: int) -> List[TrackInfo]:
         """複数検索の同期処理"""
