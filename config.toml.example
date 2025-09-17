@@ -5,7 +5,7 @@ description = "Kyrios - Advanced Discord Administration Bot"
 
 [status]
 type = "game"  # game, watching, listening, streaming, custom
-message = "Managing your server 🛡️"
+message = "v0.1.7"
 streaming_url = ""  # Twitch URLのみ有効 (typeがstreamingの場合)
 
 [database]

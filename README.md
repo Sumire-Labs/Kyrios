@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.4.0-blue.svg)
-![Version](https://img.shields.io/badge/version-0.1.6-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-0.1.7-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MPL--2.0-green.svg)
 
 **Kyrios**は個人用の高度なDiscord管理BOTです。オーバーエンジニアリングされたアーキテクチャと、最適化されたUX/パフォーマンスを提供します。
@@ -168,7 +168,7 @@ description = "Kyrios - Advanced Discord Administration Bot"
 # ボットステータス設定 (v0.1.5+)
 [status]
 type = "game"                 # game, watching, listening, streaming
-message = "Kyrios v0.1.6"
+message = "Kyrios v0.1.7"
 streaming_url = ""            # streaming時のみ必要
 
 [database]
