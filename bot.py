@@ -112,7 +112,8 @@ class KyriosBot(commands.Bot):
             "cogs.ping",
             "cogs.tickets",
             "cogs.logging",
-            "cogs.avatar"
+            "cogs.avatar",
+            "cogs.music"
         ]
 
         for cog_file in cog_files:
@@ -122,6 +123,10 @@ class KyriosBot(commands.Bot):
                     continue
 
                 if cog_file.endswith("logging") and not self.settings.features_logger:
+                    self.logger.info(f"Skipping {cog_file} (feature disabled)")
+                    continue
+
+                if cog_file.endswith("music") and not getattr(self.settings, 'features_music', True):
                     self.logger.info(f"Skipping {cog_file} (feature disabled)")
                     continue
 
@@ -191,7 +196,7 @@ class KyriosBot(commands.Bot):
 
 async def main():
     # DIコンテナをワイヤリング
-    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar"])
+    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar", "cogs.music"])
 
     bot = None
     try:
