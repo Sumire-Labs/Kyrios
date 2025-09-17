@@ -464,24 +464,26 @@ def parse_time_duration(duration_str: str) -> Optional[timedelta]:
         seconds=int(seconds or 0)
     )
 
-def format_user_mention(user_id: int) -> str:
-    """ユーザーIDをメンション形式に変換"""
-    return f"<@{user_id}>"
+#### ログ機能の活用
 
-def format_channel_mention(channel_id: int) -> str:
-    """チャンネルIDをメンション形式に変換"""
-    return f"<#{channel_id}>"
+```python
+from common import LogUtils
+from database.models import LogType
 
-def sanitize_input(text: str, max_length: int = 100) -> str:
-    """入力文字列のサニタイズ"""
-    # 改行・タブを除去
-    text = text.replace('\n', ' ').replace('\t', ' ')
-    # 連続スペースを単一スペースに
-    text = re.sub(r'\s+', ' ', text).strip()
-    # 長さ制限
-    if len(text) > max_length:
-        text = text[:max_length-3] + "..."
-    return text
+# ログタイプに応じた色・絵文字の自動選択
+log_embed = EmbedBuilder.create_base_embed(
+    f"{LogUtils.get_log_emoji(LogType.MEMBER_JOIN)} メンバー参加",
+    color=LogUtils.get_log_color(LogType.MEMBER_JOIN)
+)
+```
+
+### 開発時の注意点
+
+1. **統一性の維持**: 新機能でも既存の共通関数を使用
+2. **型ヒントの使用**: 全ての関数で適切な型注釈を記述
+3. **エラーハンドリング**: 共通のエラー表示パターンを使用
+4. **UI一貫性**: 色・絵文字・フォーマットの統一
+5. **ドキュメント**: 新機能の使用例をドキュメントに追加
 
 async def safe_send_message(channel, content=None, embed=None, view=None):
     """安全なメッセージ送信（権限チェック付き）"""

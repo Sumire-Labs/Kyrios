@@ -45,8 +45,11 @@ Kyrios/
 ├── events/
 │   ├── __init__.py
 │   └── handlers.py         # カスタムイベントハンドラー
-├── utils/                  # 共通ユーティリティ
+├── common/                 # 共通ユーティリティ
 │   ├── __init__.py
+│   ├── embed_builder.py    # Embed作成パターン
+│   ├── ui_constants.py     # 色・絵文字定数管理
+│   ├── user_formatter.py   # ユーザー情報フォーマット
 │   └── image_analyzer.py   # 画像解析・メタデータ抽出
 └── docs/                   # 包括的ドキュメント
     ├── ARCHITECTURE.md
@@ -199,6 +202,71 @@ Discordイベント → EventListener → Database操作 → LogEmbed生成 → 
 ```
 config.toml → Settings クラス → DIコンテナ → 各コンポーネント
 ```
+
+## 共通ユーティリティアーキテクチャ
+
+### 共通関数の設計原則
+Kyriosでは`common/`ディレクトリに配置された共通ユーティリティが、全cogで統一されたUI/UXを提供します。
+
+#### 1. EmbedBuilder パターン
+```python
+from common import EmbedBuilder
+
+# 統一されたEmbed作成パターン
+embed = EmbedBuilder.create_success_embed("操作完了", "正常に処理されました")
+EmbedBuilder.add_user_info_field(embed, user)
+EmbedBuilder.set_footer_with_user(embed, interaction.user, "システム名")
+```
+
+**利点**:
+- 全cogで統一されたEmbed デザイン
+- 標準的なフィールド構成の再利用
+- フッター・タイムスタンプの自動設定
+
+#### 2. UI Constants 管理
+```python
+from common import UIColors, UIEmojis, PerformanceUtils
+
+# 統一された色管理
+embed.color = UIColors.SUCCESS
+title = f"{UIEmojis.SUCCESS} 処理完了"
+
+# パフォーマンス指標の統一判定
+color = PerformanceUtils.get_latency_color(latency)
+emoji = PerformanceUtils.get_latency_emoji(latency)
+```
+
+**利点**:
+- ブランド一貫性の維持
+- 色・絵文字の集中管理
+- レイテンシ判定ロジックの統一
+
+#### 3. UserFormatter ユーティリティ
+```python
+from common import UserFormatter
+
+# 統一されたユーザー情報表示
+user_display = UserFormatter.format_user_mention_and_tag(user)
+timestamp = UserFormatter.format_timestamp(datetime.now(), "F")
+file_size = UserFormatter.format_file_size(size_bytes)
+```
+
+**利点**:
+- 情報表示の一貫性
+- 国際化対応の準備
+- フォーマット変更の一元管理
+
+### 共通化の効果
+
+#### コード削減効果
+- **重複コード**: 約150行削除
+- **保守性**: 修正箇所の一元化
+- **開発速度**: 新機能開発の高速化
+
+#### 一貫性向上
+- **UI統一**: 全機能で同一のデザインパターン
+- **エラー処理**: 統一されたエラー表示
+- **ユーザビリティ**: 予測可能なインターフェース
 
 ## 拡張可能性
 
