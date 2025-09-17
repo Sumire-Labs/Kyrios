@@ -182,15 +182,14 @@ class LoggingCog(commands.Cog):
         if not self.bot.settings.logger_log_joins:
             return
 
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MEMBER_JOIN)} メンバー参加",
-            color=self.get_log_color(LogType.MEMBER_JOIN),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MEMBER_JOIN)} メンバー参加",
+            color=LogUtils.get_log_color(LogType.MEMBER_JOIN)
         )
-        embed.add_field(name="👤 ユーザー", value=f"{getattr(member, 'mention', str(member))}\n`{member}`", inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} ユーザー", value=UserFormatter.format_user_mention_and_tag(member), inline=True)
         embed.add_field(name="🆔 ユーザーID", value=f"`{member.id}`", inline=True)
-        embed.add_field(name="📅 アカウント作成日", value=f"<t:{int(member.created_at.timestamp())}:F>", inline=True)
-        embed.add_field(name="🕐 参加時刻", value=f"<t:{int(datetime.now().timestamp())}:F>", inline=True)
+        embed.add_field(name="📅 アカウント作成日", value=UserFormatter.format_timestamp(member.created_at, "F"), inline=True)
+        embed.add_field(name="🕐 参加時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
 
         if member.avatar:
             embed.set_thumbnail(url=member.avatar.url)
@@ -214,15 +213,14 @@ class LoggingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MEMBER_LEAVE)} メンバー退出",
-            color=self.get_log_color(LogType.MEMBER_LEAVE),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MEMBER_LEAVE)} メンバー退出",
+            color=LogUtils.get_log_color(LogType.MEMBER_LEAVE)
         )
-        embed.add_field(name="👤 ユーザー", value=f"{getattr(member, 'mention', str(member))}\n`{member}`", inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} ユーザー", value=UserFormatter.format_user_mention_and_tag(member), inline=True)
         embed.add_field(name="🆔 ユーザーID", value=f"`{member.id}`", inline=True)
-        embed.add_field(name="📅 参加日", value=f"<t:{int(member.joined_at.timestamp())}:F>" if member.joined_at else "不明", inline=True)
-        embed.add_field(name="🕐 退出時刻", value=f"<t:{int(datetime.now().timestamp())}:F>", inline=True)
+        embed.add_field(name="📅 参加日", value=UserFormatter.format_timestamp(member.joined_at, "F") if member.joined_at else "不明", inline=True)
+        embed.add_field(name="🕐 退出時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
 
         if member.roles[1:]:
             roles = [getattr(role, 'mention', role.name) for role in member.roles[1:][:10]]
@@ -245,14 +243,13 @@ class LoggingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MEMBER_BAN)} メンバーBAN",
-            color=self.get_log_color(LogType.MEMBER_BAN),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MEMBER_BAN)} メンバーBAN",
+            color=LogUtils.get_log_color(LogType.MEMBER_BAN)
         )
-        embed.add_field(name="👤 対象", value=f"{getattr(user, 'mention', str(user))}\n`{user}`", inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} 対象", value=UserFormatter.format_user_mention_and_tag(user), inline=True)
         embed.add_field(name="🆔 ユーザーID", value=f"`{user.id}`", inline=True)
-        embed.add_field(name="🕐 BAN時刻", value=f"<t:{int(datetime.now().timestamp())}:F>", inline=True)
+        embed.add_field(name="🕐 BAN時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
 
         try:
             ban_info = await guild.fetch_ban(user)
@@ -275,14 +272,13 @@ class LoggingCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MEMBER_UNBAN)} メンバーBAN解除",
-            color=self.get_log_color(LogType.MEMBER_UNBAN),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MEMBER_UNBAN)} メンバーBAN解除",
+            color=LogUtils.get_log_color(LogType.MEMBER_UNBAN)
         )
-        embed.add_field(name="👤 対象", value=f"{getattr(user, 'mention', str(user))}\n`{user}`", inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} 対象", value=UserFormatter.format_user_mention_and_tag(user), inline=True)
         embed.add_field(name="🆔 ユーザーID", value=f"`{user.id}`", inline=True)
-        embed.add_field(name="🕐 BAN解除時刻", value=f"<t:{int(datetime.now().timestamp())}:F>", inline=True)
+        embed.add_field(name="🕐 BAN解除時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
 
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
