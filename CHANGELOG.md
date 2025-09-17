@@ -2,6 +2,103 @@
 
 Kyrios changelog
 
+## [0.1.8] - 2025-09-18
+
+### Added
+- **🎵 Spotify Integration & Enhanced Music Search**
+  - Spotify URL support with automatic track detection and metadata extraction
+  - Smart fallback search system: YouTube → Spotify → YouTube audio extraction
+  - Enhanced search accuracy with advanced music filtering and scoring algorithms
+  - Spotify track information display with source indicators (🟢 Spotify, 🔴 YouTube)
+  - Comprehensive content restriction detection and user-friendly error messages
+
+- **YouTube Restriction Handling**
+  - Advanced restriction detection for region-locked, age-restricted, and private videos
+  - Automatic restriction type classification (region, age, private, unavailable)
+  - User-friendly error messages explaining video availability issues
+  - Graceful fallback handling for restricted content
+
+- **Direct URL Extraction**
+  - Proper handling of direct YouTube URLs bypassing search logic
+  - Direct video metadata extraction for provided URLs
+  - Elimination of incorrect search results when using direct links
+  - Enhanced URL validation and processing
+
+### Changed
+- **Music Search System Overhaul**
+  - Improved search result scoring with music-specific filters
+  - Enhanced content filtering to exclude non-music videos (sports, news, etc.)
+  - Better artist and title matching algorithms
+  - Reduced false positive results in music search
+
+- **Music Service Architecture**
+  - Enhanced `search_and_add()` method with Spotify integration
+  - Improved error handling in `play_next()` with automatic queue progression
+  - Better track failure notification system with restriction type detection
+  - Enhanced source tracking (YouTube vs Spotify) throughout the music pipeline
+
+- **UI/UX Improvements**
+  - Music player embed now displays track source with colored indicators
+  - Enhanced error messages for better user understanding
+  - Improved feedback for restricted content and search failures
+  - Better visual distinction between Spotify and YouTube tracks
+
+### Fixed
+- **Critical Music Player Issues**
+  - Fixed asyncio import error causing bot shutdown and progress bar update failures
+  - Resolved task cleanup issues preventing proper bot shutdown
+  - Fixed direct YouTube URL extraction being incorrectly processed as search queries
+  - Eliminated wrong songs playing when using direct URLs
+
+- **Resource Management**
+  - Proper task cleanup in `MusicPlayerView` with `cleanup_all_tasks()` class method
+  - Added `cog_unload()` method for graceful music system shutdown
+  - Enhanced error handling in music player task management
+  - Better resource cleanup on voice disconnection
+
+- **Search Accuracy Improvements**
+  - Fixed irrelevant search results (e.g., soccer videos for music queries)
+  - Improved music content detection and filtering
+  - Better handling of ambiguous search terms
+  - Enhanced relevance scoring for music tracks
+
+### Technical Improvements
+- **Enhanced Error Handling**
+  - Comprehensive YouTube restriction detection and classification
+  - Better error propagation and user feedback systems
+  - Improved logging for debugging music system issues
+  - Enhanced exception handling in async music operations
+
+- **Performance Optimizations**
+  - Optimized search algorithms with better filtering
+  - Reduced API calls through smarter caching
+  - Improved task management and cleanup efficiency
+  - Better memory usage in music system components
+
+- **Code Quality Enhancements**
+  - Better separation of URL extraction vs search logic
+  - Enhanced type safety in music system components
+  - Improved async/await patterns in music operations
+  - Better code organization and maintainability
+
+### Dependencies
+- **Music System Enhancements**
+  - Enhanced yt-dlp integration with Spotify support
+  - Improved extraction capabilities for multiple music sources
+  - Better handling of various audio formats and qualities
+
+### Migration Notes
+- **Spotify Integration**: Automatic fallback enabled - no configuration changes required
+- **Search Improvements**: Enhanced search accuracy may return different results for ambiguous queries
+- **URL Handling**: Direct URLs now properly extract specified videos instead of triggering search
+- **Error Messages**: More descriptive error messages for restricted content
+
+### Performance Improvements
+- **Music System**: Faster and more accurate search results with reduced false positives
+- **Error Recovery**: Better handling of failed tracks with automatic queue progression
+- **Resource Usage**: Improved memory efficiency with proper task cleanup
+- **User Experience**: Reduced wait times for track extraction and playback
+
 ## [0.1.7] - 2025-09-18
 
 ### Added
