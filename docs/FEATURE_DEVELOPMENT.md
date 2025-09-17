@@ -419,12 +419,12 @@ async def test_full_workflow():
 
 ### 共通ユーティリティの活用
 
-Kyriosでは`utils/`ディレクトリに再利用可能なユーティリティを配置しています。
+Kyriosでは`common/`ディレクトリに再利用可能なユーティリティを配置しています。
 
 #### 画像解析ユーティリティ
 ```python
-# utils/image_analyzer.py の使用例
-from utils.image_analyzer import ImageAnalyzer
+# common/image_analyzer.py の使用例
+from common.image_analyzer import ImageAnalyzer
 
 class NewFeatureCog(commands.Cog):
     def __init__(self, bot):
@@ -440,7 +440,7 @@ class NewFeatureCog(commands.Cog):
 ### よく使う関数パターン
 
 ```python
-# utils/helpers.py（将来の拡張例）
+# common/helpers.py（将来の拡張例）
 import re
 from typing import Optional
 from datetime import datetime, timedelta
