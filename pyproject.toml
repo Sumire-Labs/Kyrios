@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kyrios"
-version = "0.1.5"
+version = "0.1.6"
 description = "Kyrios - Advanced Discord Administration Bot"
 authors = ["s12kuma01"]
 readme = "README.md"
