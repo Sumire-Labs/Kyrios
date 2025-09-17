@@ -129,17 +129,35 @@ class MusicPlayer:
         except Exception as e:
             self.logger.error(f"Failed to create track end task: {e}")
 
-    async def _handle_track_end(self):
-        """楽曲終了処理"""
+    async def _handle_track_end(self, retry_count: int = 0):
+        """楽曲終了処理（無限ループ防止）"""
         try:
+            # 無限ループ防止: 最大3回まで再試行
+            if retry_count >= 3:
+                self.logger.warning(f"Max retry count reached for track end handling in guild {self.guild_id}")
+                # トラックループを無効化して次の楽曲へ
+                self.loop_mode = LoopMode.NONE
+                await self.music_service.play_next(self.guild_id)
+                return
+
             if self.loop_mode == LoopMode.TRACK and self.current_track:
                 # 同じ楽曲をリピート
-                await self.play_track(self.current_track)
+                try:
+                    await self.play_track(self.current_track)
+                except Exception as e:
+                    self.logger.error(f"Track loop failed (retry {retry_count + 1}): {e}")
+                    # リピート再生失敗時は少し待ってから再試行
+                    await asyncio.sleep(1)
+                    await self._handle_track_end(retry_count + 1)
             else:
                 # 次の楽曲へ
                 await self.music_service.play_next(self.guild_id)
         except Exception as e:
             self.logger.error(f"Track end handling error: {e}")
+            # エラー時は安全のためトラックループを無効化
+            if retry_count < 3:
+                self.loop_mode = LoopMode.NONE
+                await self.music_service.play_next(self.guild_id)
 
 
 class MusicService:
@@ -244,8 +262,14 @@ class MusicService:
             self.logger.error(f"Player start error: {e}")
             return False
 
-    async def play_next(self, guild_id: int):
-        """次の楽曲を再生（制限動画対応強化版）"""
+    async def play_next(self, guild_id: int, retry_count: int = 0):
+        """次の楽曲を再生（制限動画対応強化版・無限再帰防止）"""
+        # 無限再帰防止: 最大5回まで再試行
+        if retry_count >= 5:
+            self.logger.warning(f"Max retry count reached for guild {guild_id}, stopping playback")
+            await self._handle_queue_empty(guild_id)
+            return
+
         player = self.players.get(guild_id)
         if not player:
             return
@@ -260,9 +284,10 @@ class MusicService:
         # 楽曲情報を取得
         track = await self.database.get_track_by_id(queue_item.track_id)
         if not track:
-            # 楽曲が見つからない場合、キューから削除して次へ
+            # 楽曲が見つからない場合、キューから削除して次へ（再帰カウント増加）
             await self.database.remove_from_queue(guild_id, queue_item.id)
-            await self.play_next(guild_id)
+            self.logger.warning(f"Track not found, trying next track (retry: {retry_count + 1})")
+            await self.play_next(guild_id, retry_count + 1)
             return
 
         try:
@@ -292,8 +317,9 @@ class MusicService:
             # 失敗通知
             await self._notify_track_failed(guild_id, track, str(e))
 
-            # 次の楽曲に自動移行
-            await self.play_next(guild_id)
+            # 次の楽曲に自動移行（再帰カウント増加）
+            self.logger.warning(f"Track failed, trying next track (retry: {retry_count + 1})")
+            await self.play_next(guild_id, retry_count + 1)
 
     async def _handle_queue_empty(self, guild_id: int):
         """キュー空の処理"""
@@ -381,15 +407,41 @@ class MusicService:
             self.logger.error(f"Voice connect error: {e}")
             return False
 
-    async def disconnect_voice(self, guild_id: int):
-        """ボイスチャンネル切断"""
+    async def disconnect_voice(self, guild_id: int, auto_cleanup: bool = True):
+        """ボイスチャンネル切断（自動クリーンアップ付き）"""
         player = self.players.get(guild_id)
         if player:
             await player.voice_client.disconnect()
             del self.players[guild_id]
 
+        if auto_cleanup:
+            # 自動クリーンアップ: キューと履歴をリセット
+            await self._cleanup_guild_data(guild_id)
+
         # セッション削除
         await self.database.delete_session(guild_id)
+
+    async def _cleanup_guild_data(self, guild_id: int):
+        """ギルドのキューと履歴をクリーンアップ"""
+        try:
+            # キューをクリア
+            cleared_queue = await self.database.clear_queue(guild_id)
+
+            # 楽曲履歴をクリア
+            cleared_tracks = await self.database.clear_guild_tracks(guild_id)
+
+            self.logger.info(f"Auto cleanup for guild {guild_id}: {cleared_queue} queue items, {cleared_tracks} tracks cleared")
+
+            # EventBus通知
+            await self.event_bus.emit_event("music_data_cleaned", {
+                "guild_id": guild_id,
+                "cleared_queue_count": cleared_queue,
+                "cleared_tracks_count": cleared_tracks,
+                "reason": "voice_disconnect"
+            })
+
+        except Exception as e:
+            self.logger.error(f"Cleanup error for guild {guild_id}: {e}")
 
     async def _notify_track_failed(self, guild_id: int, track, error_message: str):
         """楽曲再生失敗の通知"""
