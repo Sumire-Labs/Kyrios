@@ -240,12 +240,17 @@ class EmbedBuilder:
             18
         )
 
+        # ソース情報を追加
+        source_info = track.get('source', 'youtube')
+        source_emoji = "🟢" if source_info == "spotify" else "🔴"
+        source_text = "Spotify" if source_info == "spotify" else "YouTube"
+
         embed.description = f"""
 **🎶 [{track['title']}]({track['url']})**
 👤 **{track['artist']}**
 
 {progress_bar}
-{status} | 🔄 {session.get('loop_mode', 'none').upper()}
+{status} | 🔄 {session.get('loop_mode', 'none').upper()} | {source_emoji} {source_text}
 """
 
         # 📋 キュー情報 (次の3曲のみ)
