@@ -41,7 +41,7 @@ class UserFormatter:
         return info
 
     @staticmethod
-    def format_channel_info(channel: Union[discord.abc.GuildChannel, discord.abc.MessageableChannel]) -> str:
+    def format_channel_info(channel: Union[discord.abc.GuildChannel, discord.abc.Messageable]) -> str:
         """チャンネル情報をフォーマット"""
         if hasattr(channel, 'mention'):
             return channel.mention
