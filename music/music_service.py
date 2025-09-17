@@ -49,7 +49,8 @@ class MusicPlayer:
                 options=ffmpeg_opts['options']
             )
 
-            # 音量調整は削除済み (UIから音量ボタンを削除したため)
+            # 音量を50%に固定
+            source = discord.PCMVolumeTransformer(source, volume=0.5)
 
             # 再生開始
             self.voice_client.play(source, after=self._track_finished)
