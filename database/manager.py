@@ -366,7 +366,7 @@ class DatabaseManager:
     async def get_guild_queue(self, guild_id: int) -> List[dict]:
         """ギルドのキューを取得 (楽曲情報付き)"""
         async with self.async_session() as session:
-            statement = select(Queue, Track).join(Track).where(
+            statement = select(Queue, Track).join(Track, Queue.track_id == Track.id).where(
                 Queue.guild_id == guild_id
             ).order_by(Queue.position)
             result = await session.execute(statement)
