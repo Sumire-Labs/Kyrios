@@ -111,11 +111,23 @@ class MusicPlayer:
         if error:
             self.logger.error(f"Player error: {error}")
 
-        # 次の楽曲を非同期で処理
+        # 次の楽曲を非同期で処理（メインループで実行）
+        try:
+            # メインのイベントループを取得してタスクを作成
+            loop = self.music_service.event_loop
+            if loop and not loop.is_closed():
+                loop.call_soon_threadsafe(self._schedule_track_end)
+            else:
+                self.logger.warning("Event loop not available for track end handling")
+        except Exception as e:
+            self.logger.error(f"Failed to schedule track end: {e}")
+
+    def _schedule_track_end(self):
+        """メインスレッドでtrack_end処理をスケジュール"""
         try:
             asyncio.create_task(self._handle_track_end())
         except Exception as e:
-            self.logger.error(f"Failed to create task for track end: {e}")
+            self.logger.error(f"Failed to create track end task: {e}")
 
     async def _handle_track_end(self):
         """楽曲終了処理"""
@@ -141,6 +153,13 @@ class MusicService:
 
         # アクティブプレイヤー管理
         self.players: Dict[int, MusicPlayer] = {}
+
+        # イベントループの参照を保存
+        try:
+            self.event_loop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.event_loop = None
+            self.logger.warning("No event loop available at MusicService initialization")
 
     async def search_and_add(
         self,
@@ -321,3 +340,31 @@ class MusicService:
 
         # セッション削除
         await self.database.delete_session(guild_id)
+
+    async def skip_to_next(self, guild_id: int) -> bool:
+        """次楽曲にスキップ（UI更新用 - 完了まで待機）"""
+        player = self.players.get(guild_id)
+        if not player:
+            return False
+
+        try:
+            # 現在再生中でない場合は何もしない
+            if not (player.voice_client.is_playing() or player.voice_client.is_paused()):
+                return False
+
+            # スキップ実行
+            await player.skip()
+
+            # 次楽曲の再生開始まで最大3秒待機
+            for _ in range(30):  # 0.1秒 × 30回 = 3秒
+                await asyncio.sleep(0.1)
+                if player.voice_client.is_playing():
+                    return True
+
+            # タイムアウト
+            self.logger.warning(f"Skip timeout for guild {guild_id}")
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Skip error: {e}")
+            return False
