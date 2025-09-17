@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 
 from database.models import LogType
+from common import EmbedBuilder, LogUtils, UIEmojis, UserFormatter
 
 
 class LoggingCog(commands.Cog):
@@ -13,41 +14,7 @@ class LoggingCog(commands.Cog):
         self.logger = logging.getLogger(__name__)
         self.log_channels = {}
 
-    def get_log_color(self, log_type: LogType) -> discord.Color:
-        color_map = {
-            LogType.MESSAGE_DELETE: discord.Color.red(),
-            LogType.MESSAGE_EDIT: discord.Color.orange(),
-            LogType.MEMBER_JOIN: discord.Color.green(),
-            LogType.MEMBER_LEAVE: discord.Color.yellow(),
-            LogType.MEMBER_BAN: discord.Color.red(),
-            LogType.MEMBER_UNBAN: discord.Color.green(),
-            LogType.MEMBER_KICK: discord.Color.red(),
-            LogType.MEMBER_TIMEOUT: discord.Color.orange(),
-            LogType.ROLE_ADD: discord.Color.blue(),
-            LogType.ROLE_REMOVE: discord.Color.purple(),
-            LogType.CHANNEL_CREATE: discord.Color.green(),
-            LogType.CHANNEL_DELETE: discord.Color.red(),
-            LogType.SYSTEM_EVENT: discord.Color.blue()
-        }
-        return color_map.get(log_type, discord.Color.default())
-
-    def get_log_emoji(self, log_type: LogType) -> str:
-        emoji_map = {
-            LogType.MESSAGE_DELETE: "🗑️",
-            LogType.MESSAGE_EDIT: "✏️",
-            LogType.MEMBER_JOIN: "📥",
-            LogType.MEMBER_LEAVE: "📤",
-            LogType.MEMBER_BAN: "🔨",
-            LogType.MEMBER_UNBAN: "🔓",
-            LogType.MEMBER_KICK: "👢",
-            LogType.MEMBER_TIMEOUT: "⏰",
-            LogType.ROLE_ADD: "🏷️",
-            LogType.ROLE_REMOVE: "🚫",
-            LogType.CHANNEL_CREATE: "📝",
-            LogType.CHANNEL_DELETE: "🗂️",
-            LogType.SYSTEM_EVENT: "⚙️"
-        }
-        return emoji_map.get(log_type, "ℹ️")
+    # 共通関数を使用するため、これらのメソッドは削除
 
     async def send_log(self, guild_id: int, embed: discord.Embed) -> None:
         if guild_id not in self.log_channels:
@@ -96,10 +63,9 @@ class LoggingCog(commands.Cog):
             else:
                 channel_display = f"チャンネルID: {channel.id}"
 
-        embed = discord.Embed(
-            title="📊 ログシステム設定完了",
-            description=f"このチャンネル ({channel_display}) がログ出力チャンネルに設定されました。",
-            color=discord.Color.green()
+        embed = EmbedBuilder.create_success_embed(
+            "ログシステム設定完了",
+            f"このチャンネル ({channel_display}) がログ出力チャンネルに設定されました。"
         )
         embed.add_field(
             name="📝 ログされる内容",
@@ -128,19 +94,18 @@ class LoggingCog(commands.Cog):
         if not self.bot.settings.logger_log_deletes:
             return
 
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MESSAGE_DELETE)} メッセージ削除",
-            color=self.get_log_color(LogType.MESSAGE_DELETE),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MESSAGE_DELETE)} メッセージ削除",
+            color=LogUtils.get_log_color(LogType.MESSAGE_DELETE)
         )
-        embed.add_field(name="🏠 チャンネル", value=getattr(message.channel, 'mention', f"#{getattr(message.channel, 'name', 'Unknown')}"), inline=True)
-        embed.add_field(name="👤 送信者", value=f"{getattr(message.author, 'mention', str(message.author))}\n`{message.author}`", inline=True)
-        embed.add_field(name="🕐 削除時刻", value=f"<t:{int(datetime.now().timestamp())}:T>", inline=True)
+        embed.add_field(name="🏠 チャンネル", value=UserFormatter.format_channel_info(message.channel), inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} 送信者", value=UserFormatter.format_user_mention_and_tag(message.author), inline=True)
+        embed.add_field(name="🕐 削除時刻", value=UserFormatter.format_timestamp(datetime.now(), "T"), inline=True)
 
         if message.content:
             embed.add_field(
                 name="📝 削除された内容",
-                value=f"```\n{message.content[:1000]}{'...' if len(message.content) > 1000 else ''}\n```",
+                value=UserFormatter.format_code_block(UserFormatter.truncate_text(message.content, 1000)),
                 inline=False
             )
 
@@ -176,26 +141,25 @@ class LoggingCog(commands.Cog):
         if before.content == after.content:
             return
 
-        embed = discord.Embed(
-            title=f"{self.get_log_emoji(LogType.MESSAGE_EDIT)} メッセージ編集",
-            color=self.get_log_color(LogType.MESSAGE_EDIT),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{LogUtils.get_log_emoji(LogType.MESSAGE_EDIT)} メッセージ編集",
+            color=LogUtils.get_log_color(LogType.MESSAGE_EDIT)
         )
-        embed.add_field(name="🏠 チャンネル", value=getattr(before.channel, 'mention', f"#{getattr(before.channel, 'name', 'Unknown')}"), inline=True)
-        embed.add_field(name="👤 編集者", value=f"{getattr(before.author, 'mention', str(before.author))}\n`{before.author}`", inline=True)
-        embed.add_field(name="🕐 編集時刻", value=f"<t:{int(datetime.now().timestamp())}:T>", inline=True)
+        embed.add_field(name="🏠 チャンネル", value=UserFormatter.format_channel_info(before.channel), inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} 編集者", value=UserFormatter.format_user_mention_and_tag(before.author), inline=True)
+        embed.add_field(name="🕐 編集時刻", value=UserFormatter.format_timestamp(datetime.now(), "T"), inline=True)
 
         if before.content:
             embed.add_field(
                 name="📝 編集前",
-                value=f"```\n{before.content[:500]}{'...' if len(before.content) > 500 else ''}\n```",
+                value=UserFormatter.format_code_block(UserFormatter.truncate_text(before.content, 500)),
                 inline=False
             )
 
         if after.content:
             embed.add_field(
                 name="📝 編集後",
-                value=f"```\n{after.content[:500]}{'...' if len(after.content) > 500 else ''}\n```",
+                value=UserFormatter.format_code_block(UserFormatter.truncate_text(after.content, 500)),
                 inline=False
             )
 
