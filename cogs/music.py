@@ -522,7 +522,7 @@ class MusicCog(commands.Cog):
                 return
 
             await player.stop()
-            await self.music_service.disconnect_voice(interaction.guild.id)
+            await self.music_service.disconnect_voice(interaction.guild.id, auto_cleanup=False)
 
             embed = EmbedBuilder.create_success_embed("停止完了", "音楽を停止し、ボイスチャンネルから退出しました")
             await interaction.followup.send(embed=embed)
@@ -626,6 +626,45 @@ class MusicCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Music player refresh display error: {e}")
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        """ボイス状態変更の監視（自動切断・クリーンアップ）"""
+        try:
+            # BOT自身の状態変更のみ監視
+            if member.id != self.bot.user.id:
+                return
+
+            guild_id = member.guild.id
+
+            # BOTがボイスチャンネルから切断された場合
+            if before.channel and not after.channel:
+                self.logger.info(f"Bot disconnected from voice channel in guild {guild_id}")
+
+                # 音楽サービスのクリーンアップ
+                if hasattr(self.bot, 'music_service') and self.bot.music_service:
+                    player = self.bot.music_service.get_player(guild_id)
+                    if player:
+                        # プレイヤー停止
+                        await player.stop()
+                        # プレイヤーを削除
+                        if guild_id in self.bot.music_service.players:
+                            del self.bot.music_service.players[guild_id]
+
+                        # キューと履歴の自動クリーンアップ
+                        await self.bot.music_service._cleanup_guild_data(guild_id)
+
+                        # セッション削除
+                        await self.bot.music_service.database.delete_session(guild_id)
+
+                        self.logger.info(f"Auto cleanup completed for guild {guild_id}")
+
+            # BOTがボイスチャンネルに接続された場合のログ
+            elif not before.channel and after.channel:
+                self.logger.info(f"Bot connected to voice channel {after.channel.name} in guild {guild_id}")
+
+        except Exception as e:
+            self.logger.error(f"Voice state update handling error: {e}")
 
     async def cog_unload(self):
         """Cog終了時のクリーンアップ"""

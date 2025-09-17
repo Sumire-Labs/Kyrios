@@ -398,6 +398,19 @@ class DatabaseManager:
             self.logger.info(f"Cleared {len(queue_items)} items from queue for guild {guild_id}")
             return len(queue_items)
 
+    async def clear_guild_tracks(self, guild_id: int) -> int:
+        """ギルドの楽曲履歴をクリア"""
+        async with self.transaction() as session:
+            statement = select(Track).where(Track.guild_id == guild_id)
+            result = await session.execute(statement)
+            tracks = list(result.scalars().all())
+
+            for track in tracks:
+                await session.delete(track)
+
+            self.logger.info(f"Cleared {len(tracks)} tracks from history for guild {guild_id}")
+            return len(tracks)
+
     async def get_track_by_id(self, track_id: int) -> Optional[Track]:
         """トラックIDで楽曲を取得"""
         async with self.async_session() as session:
