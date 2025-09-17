@@ -213,10 +213,10 @@ class AvatarCog(commands.Cog):
                 banner_info = await self.image_analyzer.analyze_image(banner_url)
 
             # メインEmbed作成
-            try:
-                color = discord.Color.from_str(avatar_info.get('dominant_color', '#808080'))
-            except:
-                color = UIColors.AVATAR
+            color = UserFormatter.safe_color_from_hex(
+                avatar_info.get('dominant_color'),
+                UIColors.AVATAR
+            )
 
             embed = EmbedBuilder.create_base_embed(
                 title=f"🖼️ {target_user.display_name} のアバター・バナー情報",

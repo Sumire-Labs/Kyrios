@@ -315,7 +315,7 @@ class LoggingCog(commands.Cog):
             title=f"{LogUtils.get_log_emoji(LogType.CHANNEL_CREATE)} チャンネル作成",
             color=LogUtils.get_log_color(LogType.CHANNEL_CREATE)
         )
-        embed.add_field(name="📝 チャンネル名", value=f"#{channel.name}", inline=True)
+        embed.add_field(name="📝 チャンネル名", value=UserFormatter.format_channel_name(channel), inline=True)
         embed.add_field(name="🆔 チャンネルID", value=UserFormatter.format_id(channel.id), inline=True)
         embed.add_field(name="📋 タイプ", value=channel_type, inline=True)
         embed.add_field(name="🕐 作成時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
@@ -335,7 +335,7 @@ class LoggingCog(commands.Cog):
             log_type=LogType.CHANNEL_CREATE,
             action="Channel Created",
             channel_id=channel.id,
-            details=f"Name: {channel.name}, Type: {channel_type}, Position: {getattr(channel, 'position', 'N/A')}"
+            details=f"Name: {getattr(channel, 'name', 'Unknown')}, Type: {channel_type}, Position: {getattr(channel, 'position', 'N/A')}"
         )
 
     @commands.Cog.listener()
@@ -359,7 +359,7 @@ class LoggingCog(commands.Cog):
             title=f"{LogUtils.get_log_emoji(LogType.CHANNEL_DELETE)} チャンネル削除",
             color=LogUtils.get_log_color(LogType.CHANNEL_DELETE)
         )
-        embed.add_field(name="📝 チャンネル名", value=f"#{channel.name}", inline=True)
+        embed.add_field(name="📝 チャンネル名", value=UserFormatter.format_channel_name(channel), inline=True)
         embed.add_field(name="🆔 チャンネルID", value=UserFormatter.format_id(channel.id), inline=True)
         embed.add_field(name="📋 タイプ", value=channel_type, inline=True)
         embed.add_field(name="🕐 削除時刻", value=UserFormatter.format_timestamp(datetime.now(), "F"), inline=True)
@@ -379,7 +379,7 @@ class LoggingCog(commands.Cog):
             log_type=LogType.CHANNEL_DELETE,
             action="Channel Deleted",
             channel_id=channel.id,
-            details=f"Name: {channel.name}, Type: {channel_type}, Position: {getattr(channel, 'position', 'N/A')}"
+            details=f"Name: {getattr(channel, 'name', 'Unknown')}, Type: {channel_type}, Position: {getattr(channel, 'position', 'N/A')}"
         )
 
     @commands.Cog.listener()

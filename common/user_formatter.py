@@ -189,3 +189,28 @@ class UserFormatter:
     def format_inline_code(content: str) -> str:
         """インラインコード形式でフォーマット"""
         return f"`{content}`"
+
+    @staticmethod
+    def has_manage_permissions(user: Union[discord.User, discord.Member]) -> bool:
+        """ユーザーが管理権限を持っているかチェック"""
+        if not isinstance(user, discord.Member):
+            return False
+        return user.guild_permissions.manage_messages or user.guild_permissions.administrator
+
+    @staticmethod
+    def format_channel_name(channel) -> str:
+        """チャンネル名をフォーマット（#付き）"""
+        if hasattr(channel, 'name'):
+            return f"#{channel.name}"
+        return f"チャンネルID: {channel.id}"
+
+    @staticmethod
+    def safe_color_from_hex(hex_color: Optional[str], fallback_color: discord.Color = None) -> discord.Color:
+        """16進カラーコードから安全にDiscord.Colorを作成"""
+        if not hex_color:
+            return fallback_color or discord.Color.default()
+
+        try:
+            return discord.Color.from_str(hex_color)
+        except (ValueError, TypeError):
+            return fallback_color or discord.Color.default()

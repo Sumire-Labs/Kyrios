@@ -88,7 +88,7 @@ class TicketView(discord.ui.View):
         await channel.send(embed=embed, view=view)
 
         await interaction.followup.send(
-            f"✅ チケットを作成しました: {channel.mention}",
+            f"✅ チケットを作成しました: {UserFormatter.format_channel_info(channel)}",
             ephemeral=True
         )
 
@@ -112,7 +112,7 @@ class TicketManagementView(discord.ui.View):
 
     @discord.ui.button(label="🔒 クローズ", style=ButtonStyles.CLOSE)  # type: ignore
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
-        if not (isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.manage_messages):
+        if not UserFormatter.has_manage_permissions(interaction.user):
             ticket = await self.bot.database.get_ticket(self.ticket_id)
             if ticket and interaction.user.id != ticket.user_id:
                 await interaction.response.send_message("❌ チケットをクローズする権限がありません。", ephemeral=True)
@@ -137,14 +137,10 @@ class AssignModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         user_input = self.user_input.value.strip()
 
-        if user_input.startswith('<@') and user_input.endswith('>'):
-            user_id = int(user_input[2:-1].replace('!', ''))
-        else:
-            try:
-                user_id = int(user_input)
-            except ValueError:
-                await interaction.response.send_message("❌ 無効なユーザーIDまたはメンションです。", ephemeral=True)
-                return
+        user_id = UserFormatter.format_user_id_or_mention(user_input)
+        if user_id is None:
+            await interaction.response.send_message("❌ 無効なユーザーIDまたはメンションです。", ephemeral=True)
+            return
 
         user = interaction.guild.get_member(user_id)
         if not user:
@@ -195,7 +191,8 @@ class CloseModal(discord.ui.Modal):
             "reason": reason
         })
 
-        await interaction.channel.edit(name=f"closed-{interaction.channel.name}")
+        if interaction.channel and hasattr(interaction.channel, 'name'):
+            await interaction.channel.edit(name=f"closed-{interaction.channel.name}")
 
         archive_category_id = self.bot.settings.tickets_archive_category_id
         if archive_category_id:
