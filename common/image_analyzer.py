@@ -97,8 +97,12 @@ class ImageAnalyzer:
             if colors_raw:
                 # 最も多く使われている色
                 dominant_color = max(colors_raw, key=lambda x: x[0])
-                rgb = dominant_color[1]  # Tuple[int, int, int]
-                return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+                # 型安全性のための明示的チェック
+                if len(dominant_color) >= 2 and isinstance(dominant_color[1], (tuple, list)) and len(dominant_color[1]) >= 3:
+                    rgb = dominant_color[1]  # Tuple[int, int, int]
+                    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+                else:
+                    return "#808080"  # 予期しない形式の場合
             else:
                 return "#808080"  # グレー（デフォルト）
 
