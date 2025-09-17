@@ -147,3 +147,52 @@ class UserAvatarStats(SQLModel, table=True):
     last_banner_change: Optional[datetime] = None
     most_used_format: Optional[str] = None
     average_change_frequency: Optional[float] = None  # Days between changes
+
+
+# 音楽システム用モデル
+class MusicSource(str, Enum):
+    YOUTUBE = "youtube"
+    SPOTIFY = "spotify"
+    SOUNDCLOUD = "soundcloud"
+    URL = "url"
+
+
+class LoopMode(str, Enum):
+    NONE = "none"
+    TRACK = "track"
+    QUEUE = "queue"
+
+
+class Track(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int
+    title: str
+    artist: str
+    url: str
+    source: MusicSource = MusicSource.YOUTUBE
+    duration: int  # 秒
+    thumbnail_url: Optional[str] = None
+    requested_by: int  # ユーザーID
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class Queue(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int
+    track_id: int
+    position: int
+    added_by: int
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class MusicSession(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int = Field(unique=True)
+    voice_channel_id: int
+    text_channel_id: int
+    current_track_id: Optional[int] = None
+    volume: int = 50
+    is_paused: bool = False
+    loop_mode: LoopMode = LoopMode.NONE
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
