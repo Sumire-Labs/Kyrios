@@ -140,10 +140,18 @@ class UserFormatter:
             return f"{minutes}分"
         else:
             hours = seconds // 3600
-            remaining_minutes = (seconds % 3600) // 60
+            remaining_total_seconds = seconds % 3600
+            remaining_minutes = remaining_total_seconds // 60
+            remaining_seconds = remaining_total_seconds % 60
+
+            # 時、分、秒を適切に連結
+            parts = [f"{hours}時間"]
             if remaining_minutes > 0:
-                return f"{hours}時間{remaining_minutes}分"
-            return f"{hours}時間"
+                parts.append(f"{remaining_minutes}分")
+            if remaining_seconds > 0:
+                parts.append(f"{remaining_seconds}秒")
+
+            return "".join(parts)
 
     @staticmethod
     def format_percentage(value: float, decimal_places: int = 1) -> str:
