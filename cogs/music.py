@@ -234,7 +234,7 @@ class MusicCog(commands.Cog):
 
         # 音楽システム初期化
         self.youtube_extractor = YouTubeExtractor()
-        self.music_service = MusicService(database, event_bus, self.youtube_extractor)
+        self.music_service = MusicService(self.database, self.event_bus, self.youtube_extractor)
 
         # botにmusic_serviceを追加
         bot.music_service = self.music_service
