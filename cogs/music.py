@@ -6,7 +6,7 @@ import logging
 from typing import Optional
 
 from common import EmbedBuilder, UIColors, UIEmojis, UserFormatter, ButtonStyles
-from di import DatabaseDep, EventBusDep, ConfigDep
+from di import DatabaseDep, EventBusDep, ConfigDep, container
 from dependency_injector.wiring import inject, Provide
 from database.models import LoopMode
 from music.music_service import MusicService
@@ -218,19 +218,21 @@ class MusicPlayerView(discord.ui.View):
 class MusicCog(commands.Cog):
     """音楽システムCog - Kyriosパターン準拠"""
 
-    @inject
-    def __init__(
-        self,
-        bot,
-        database=DatabaseDep,
-        event_bus=EventBusDep,
-        config=ConfigDep
-    ):
+    def __init__(self, bot):
         self.bot = bot
-        self.database = database
-        self.event_bus = event_bus
-        self.config = config
         self.logger = logging.getLogger(__name__)
+
+        # DIコンテナから直接取得
+        self.database = container.database_manager_raw()
+        self.event_bus = container.wired_event_bus()
+        self.config = container.config()
+
+        # データベースの初期化確認（通常は既にbot.pyで初期化済み）
+        # self.database.initialize() は必要に応じて後で呼び出される
+
+        # DI デバッグ情報
+        self.logger.info(f"MusicCog - Database type: {type(self.database)}")
+        self.logger.info(f"MusicCog - EventBus type: {type(self.event_bus)}")
 
         # 音楽システム初期化
         self.youtube_extractor = YouTubeExtractor()

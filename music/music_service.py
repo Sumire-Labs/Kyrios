@@ -300,6 +300,7 @@ class MusicService:
 
             # セッション作成
             text_channel_id = text_channel.id if text_channel else voice_channel.id
+            self.logger.debug(f"Database type: {type(self.database)}")
             await self.database.create_session(
                 guild_id=voice_channel.guild.id,
                 voice_channel_id=voice_channel.id,
