@@ -4,13 +4,15 @@ from discord import app_commands
 from discord.ext import commands
 import logging
 
+from common import EmbedBuilder, UIColors, UIEmojis, UserFormatter, ButtonStyles
+
 
 class TicketView(discord.ui.View):
     def __init__(self, bot):  # type: ignore
         super().__init__(timeout=None)
         self.bot = bot
 
-    @discord.ui.button(label="🎫 チケット作成", style=discord.ButtonStyle.green, custom_id="create_ticket")  # type: ignore
+    @discord.ui.button(label=f"{UIEmojis.TICKET} チケット作成", style=ButtonStyles.CREATE, custom_id="create_ticket")  # type: ignore
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.defer(ephemeral=True)
 
@@ -69,15 +71,18 @@ class TicketView(discord.ui.View):
             title="新規サポートチケット"
         )
 
-        embed = discord.Embed(
-            title="🎫 サポートチケット",
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{UIEmojis.TICKET} サポートチケット",
             description=f"こんにちは {user.mention}！\n\nこちらはあなた専用のサポートチケットです。\n以下のボタンを使用して、チケットの管理や詳細情報の追加ができます。",
-            color=discord.Color.blue()
+            color=UIColors.TICKET
         )
-        embed.add_field(name="📝 チケットID", value=f"`{ticket.id}`", inline=True)
-        embed.add_field(name="👥 担当者", value="未割り当て", inline=True)
-        embed.add_field(name="📅 作成日時", value=f"<t:{int(ticket.created_at.timestamp())}:F>", inline=True)
-        embed.add_field(name="🔄 ステータス", value="🟢 オープン", inline=True)
+        EmbedBuilder.add_ticket_info_fields(
+            embed,
+            ticket_id=ticket.id,
+            status=f"{UIEmojis.TICKET_OPEN} オープン",
+            assigned_to="未割り当て",
+            created_at=ticket.created_at
+        )
 
         view = TicketManagementView(self.bot, ticket.id)  # type: ignore
         await channel.send(embed=embed, view=view)
@@ -101,11 +106,11 @@ class TicketManagementView(discord.ui.View):
         self.bot = bot
         self.ticket_id = ticket_id
 
-    @discord.ui.button(label="👤 アサイン", style=discord.ButtonStyle.secondary)  # type: ignore
+    @discord.ui.button(label="👤 アサイン", style=ButtonStyles.ASSIGN)  # type: ignore
     async def assign_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.send_modal(AssignModal(self.bot, self.ticket_id))
 
-    @discord.ui.button(label="🔒 クローズ", style=discord.ButtonStyle.danger)  # type: ignore
+    @discord.ui.button(label="🔒 クローズ", style=ButtonStyles.CLOSE)  # type: ignore
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         if not (isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.manage_messages):
             ticket = await self.bot.database.get_ticket(self.ticket_id)
@@ -173,14 +178,14 @@ class CloseModal(discord.ui.Modal):
             await interaction.response.send_message("❌ チケットが見つかりません。", ephemeral=True)
             return
 
-        embed = discord.Embed(
-            title="🔒 チケットクローズ",
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{UIEmojis.TICKET_CLOSED} チケットクローズ",
             description=f"チケット #{ticket.id} がクローズされました。",
-            color=discord.Color.red()
+            color=UIColors.ERROR
         )
         embed.add_field(name="📝 理由", value=reason, inline=False)
-        embed.add_field(name="👤 クローズ実行者", value=interaction.user.mention, inline=True)
-        embed.add_field(name="📅 クローズ日時", value=f"<t:{int(ticket.closed_at.timestamp())}:F>", inline=True)
+        embed.add_field(name=f"{UIEmojis.USER} クローズ実行者", value=UserFormatter.format_user_mention_and_tag(interaction.user), inline=True)
+        embed.add_field(name="📅 クローズ日時", value=UserFormatter.format_timestamp(ticket.closed_at), inline=True)
 
         await interaction.response.send_message(embed=embed)
 
@@ -207,11 +212,11 @@ class TicketsCog(commands.Cog):
     @app_commands.command(name="ticket", description="チケットパネルを設置します")
     @app_commands.default_permissions(manage_guild=True)
     async def ticket_panel(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🎫 サポートチケット",
-            description="サポートが必要な場合は下のボタンをクリックしてください\n\n⚠️ **注意事項:**\n• 不適切な利用は禁止されています\n• 1人あたり最大3つまでのチケットを作成できます",
-            color=discord.Color.blue()
+        embed = EmbedBuilder.create_info_embed(
+            "サポートチケット",
+            "サポートが必要な場合は下のボタンをクリックしてください\n\n⚠️ **注意事項:**\n• 不適切な利用は禁止されています\n• 1人あたり最大3つまでのチケットを作成できます"
         )
+        embed.color = UIColors.TICKET
 
         view = TicketView(self.bot)
         await interaction.response.send_message(embed=embed, view=view)
