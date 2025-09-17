@@ -49,8 +49,8 @@ class MusicPlayer:
                 options=ffmpeg_opts['options']
             )
 
-            # 音量を50%に固定
-            source = discord.PCMVolumeTransformer(source, volume=0.5)
+            # 音量を30%に固定
+            source = discord.PCMVolumeTransformer(source, volume=0.3)
 
             # 再生開始
             self.voice_client.play(source, after=self._track_finished)

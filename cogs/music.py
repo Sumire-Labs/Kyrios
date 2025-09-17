@@ -201,16 +201,23 @@ class MusicPlayerView(discord.ui.View):
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
             elif action == "stop":
-                if player:
-                    await player.stop()
-                    await self.bot.music_service.disconnect_voice(self.guild_id)
+                try:
+                    if player:
+                        await player.stop()
+                        await self.bot.music_service.disconnect_voice(self.guild_id, auto_cleanup=False)
 
-                # 自動更新停止
-                self.stop_auto_update()
+                    # 自動更新停止
+                    self.stop_auto_update()
 
-                embed = EmbedBuilder.create_success_embed("停止", "音楽を停止し、ボイスチャンネルから退出しました")
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return  # Embed更新しない
+                    embed = EmbedBuilder.create_success_embed("停止", "音楽を停止し、ボイスチャンネルから退出しました")
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return  # Embed更新しない
+                except Exception as stop_error:
+                    self.bot.logger.error(f"Stop action error: {stop_error}")
+                    # 停止処理は成功扱いにする（ユーザー体験優先）
+                    embed = EmbedBuilder.create_success_embed("停止", "音楽を停止し、ボイスチャンネルから退出しました")
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
 
             # Embed更新
             await self._update_player_embed(interaction)
