@@ -7,6 +7,8 @@ import asyncio
 import psutil
 from datetime import datetime
 
+from common import EmbedBuilder, PerformanceUtils, UIEmojis, UserFormatter
+
 
 class PingCog(commands.Cog):
     def __init__(self, bot):
@@ -21,10 +23,9 @@ class PingCog(commands.Cog):
         # インタラクションレスポンス測定
         await interaction.response.defer()
         start_time = time.perf_counter()
-        embed_initial = discord.Embed(
-            title="🔍 レイテンシ測定中...",
-            description="各種レイテンシを測定しています...",
-            color=discord.Color.yellow()
+        embed_initial = EmbedBuilder.create_loading_embed(
+            "レイテンシ測定中",
+            "各種レイテンシを測定しています..."
         )
         await interaction.followup.send(embed=embed_initial)
         message_latency = round((time.perf_counter() - start_time) * 1000)
@@ -45,61 +46,41 @@ class PingCog(commands.Cog):
         memory_info = psutil.virtual_memory()
         memory_usage = memory_info.percent
 
-        # レイテンシ判定
-        def get_latency_color(latency):
-            if latency < 50:
-                return discord.Color.green()
-            elif latency < 100:
-                return discord.Color.yellow()
-            elif latency < 200:
-                return discord.Color.orange()
-            else:
-                return discord.Color.red()
-
-        def get_latency_emoji(latency):
-            if latency < 50:
-                return "🟢"
-            elif latency < 100:
-                return "🟡"
-            elif latency < 200:
-                return "🟠"
-            else:
-                return "🔴"
+        # レイテンシ判定は共通関数を使用
 
         # 最終Embed作成
-        embed = discord.Embed(
-            title="🏓 高度なレイテンシ測定結果",
-            color=get_latency_color(api_latency),
-            timestamp=datetime.now()
+        embed = EmbedBuilder.create_base_embed(
+            title=f"{UIEmojis.PING} 高度なレイテンシ測定結果",
+            color=PerformanceUtils.get_latency_color(api_latency)
         )
 
         embed.add_field(
-            name="📡 Discord API レイテンシ",
-            value=f"{get_latency_emoji(api_latency)} **{api_latency}ms**",
+            name=f"{UIEmojis.NETWORK} Discord API レイテンシ",
+            value=f"{PerformanceUtils.get_latency_emoji(api_latency)} **{api_latency}ms**",
             inline=True
         )
 
         embed.add_field(
             name="💬 メッセージレスポンス",
-            value=f"{get_latency_emoji(message_latency)} **{message_latency}ms**",
+            value=f"{PerformanceUtils.get_latency_emoji(message_latency)} **{message_latency}ms**",
             inline=True
         )
 
         embed.add_field(
-            name="💾 データベースレスポンス",
-            value=f"{get_latency_emoji(db_latency)} **{db_latency}ms**\n{db_status}",
+            name=f"{UIEmojis.DATABASE} データベースレスポンス",
+            value=f"{PerformanceUtils.get_latency_emoji(db_latency)} **{db_latency}ms**\n{db_status}",
             inline=True
         )
 
         embed.add_field(
-            name="⚙️ CPU使用率",
-            value=f"**{cpu_usage}%**",
+            name=f"{UIEmojis.CPU} CPU使用率",
+            value=f"**{UserFormatter.format_percentage(cpu_usage)}**",
             inline=True
         )
 
         embed.add_field(
-            name="🧠 メモリ使用率",
-            value=f"**{memory_usage}%**\n({memory_info.used // 1024 // 1024}MB / {memory_info.total // 1024 // 1024}MB)",
+            name=f"{UIEmojis.MEMORY} メモリ使用率",
+            value=f"**{UserFormatter.format_percentage(memory_usage)}**\n({UserFormatter.format_file_size(memory_info.used)} / {UserFormatter.format_file_size(memory_info.total)})",
             inline=True
         )
 
@@ -122,18 +103,7 @@ class PingCog(commands.Cog):
 
         # パフォーマンス総評
         avg_latency = (api_latency + message_latency + db_latency) / 3
-        if avg_latency < 75:
-            performance = "🚀 優秀"
-            performance_color = discord.Color.green()
-        elif avg_latency < 150:
-            performance = "✅ 良好"
-            performance_color = discord.Color.yellow()
-        elif avg_latency < 250:
-            performance = "⚠️ 普通"
-            performance_color = discord.Color.orange()
-        else:
-            performance = "🐌 低速"
-            performance_color = discord.Color.red()
+        performance, performance_color = PerformanceUtils.get_performance_rating(avg_latency)
 
         embed.add_field(
             name="📊 総合パフォーマンス",
@@ -142,7 +112,7 @@ class PingCog(commands.Cog):
         )
 
         embed.color = performance_color
-        embed.set_footer(text="Kyrios Performance Monitor", icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None)
+        EmbedBuilder.set_footer_with_user(embed, interaction.user, "Performance Monitor")
 
         await interaction.edit_original_response(embed=embed)
 
