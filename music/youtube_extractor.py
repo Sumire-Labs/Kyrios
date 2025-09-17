@@ -285,6 +285,208 @@ class YouTubeExtractor:
         """URLかどうかを判定"""
         return query.startswith(('http://', 'https://'))
 
+    def is_spotify_url(self, query: str) -> bool:
+        """SpotifyURLかどうかを判定"""
+        return ('spotify.com' in query or
+                query.startswith('spotify:') or
+                'open.spotify.com' in query)
+
     def get_ffmpeg_options(self) -> Dict[str, str]:
         """FFmpegオプション取得"""
         return self.ffmpeg_opts.copy()
+
+    async def check_video_availability(self, url: str) -> Dict[str, Any]:
+        """動画の利用可能性をチェック"""
+        try:
+            result = await asyncio.to_thread(self._check_availability_sync, url)
+            return result
+        except Exception as e:
+            self.logger.error(f"Availability check error: {e}")
+            return {
+                "available": False,
+                "error": str(e),
+                "restriction_type": "unknown"
+            }
+
+    def _check_availability_sync(self, url: str) -> Dict[str, Any]:
+        """動画利用可能性の同期チェック"""
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
+
+        try:
+            # メタデータのみ取得（軽量）
+            info = ytdl.extract_info(url, download=False)
+
+            if not info:
+                return {
+                    "available": False,
+                    "error": "No video information found",
+                    "restriction_type": "not_found"
+                }
+
+            # 制限情報をチェック
+            availability_info = {
+                "available": True,
+                "age_limit": info.get('age_limit', 0),
+                "is_live": info.get('is_live', False),
+                "availability": info.get('availability', 'public'),
+                "duration": info.get('duration', 0),
+                "title": info.get('title', 'Unknown'),
+                "uploader": info.get('uploader', 'Unknown')
+            }
+
+            # 年齢制限チェック
+            if info.get('age_limit', 0) > 0:
+                availability_info.update({
+                    "available": False,
+                    "restriction_type": "age_restricted",
+                    "age_limit": info.get('age_limit')
+                })
+
+            # ライブストリームチェック
+            elif info.get('is_live', False):
+                availability_info.update({
+                    "available": False,
+                    "restriction_type": "live_stream"
+                })
+
+            # 可用性チェック
+            availability = info.get('availability', 'public')
+            if availability not in ['public', 'unlisted']:
+                availability_info.update({
+                    "available": False,
+                    "restriction_type": "private_or_restricted",
+                    "availability": availability
+                })
+
+            return availability_info
+
+        except yt_dlp.DownloadError as e:
+            error_str = str(e).lower()
+            restriction_type = self._detect_restriction_type(error_str)
+
+            return {
+                "available": False,
+                "error": str(e),
+                "restriction_type": restriction_type
+            }
+
+    def _detect_restriction_type(self, error_message: str) -> str:
+        """エラーメッセージから制限タイプを検出"""
+        error_lower = error_message.lower()
+
+        if any(keyword in error_lower for keyword in ['age', 'sign in', 'login']):
+            return "age_restricted"
+        elif any(keyword in error_lower for keyword in ['region', 'country', 'location']):
+            return "region_blocked"
+        elif any(keyword in error_lower for keyword in ['private', 'unavailable']):
+            return "private"
+        elif any(keyword in error_lower for keyword in ['deleted', 'removed', 'not found']):
+            return "deleted"
+        elif any(keyword in error_lower for keyword in ['live', 'stream']):
+            return "live_stream"
+        elif any(keyword in error_lower for keyword in ['embed', 'disabled']):
+            return "embed_disabled"
+        else:
+            return "unknown"
+
+    def get_restriction_message(self, restriction_type: str) -> str:
+        """制限タイプに対応するユーザーフレンドリーなメッセージ"""
+        messages = {
+            "age_restricted": "🔞 年齢制限のため再生できません",
+            "region_blocked": "🌍 地域制限のため再生できません",
+            "private": "🔒 プライベート動画のため再生できません",
+            "deleted": "❌ 動画が削除されています",
+            "live_stream": "📺 ライブストリームは対応していません",
+            "embed_disabled": "🚫 埋め込み無効のため再生できません",
+            "not_found": "❓ 動画が見つかりません",
+            "unknown": "⚠️ 再生できない動画です"
+        }
+        return messages.get(restriction_type, messages["unknown"])
+
+    async def extract_spotify_track(self, spotify_url: str) -> Optional[TrackInfo]:
+        """Spotify URLからYouTube音源を取得"""
+        try:
+            track_info = await asyncio.to_thread(self._extract_spotify_sync, spotify_url)
+            return track_info
+        except Exception as e:
+            self.logger.error(f"Spotify extraction error: {e}")
+            return None
+
+    def _extract_spotify_sync(self, spotify_url: str) -> Optional[TrackInfo]:
+        """Spotify抽出の同期処理"""
+        ytdl = yt_dlp.YoutubeDL(params=self.ytdl_opts)  # type: ignore
+
+        try:
+            self.logger.info(f"Extracting Spotify track: {spotify_url}")
+
+            # yt-dlpがSpotifyメタデータを取得してYouTube音源を検索
+            info = ytdl.extract_info(spotify_url, download=False)
+
+            if not info:
+                return None
+
+            # TrackInfo作成
+            track_info = TrackInfo(
+                title=info.get('title', 'Unknown Title'),
+                artist=info.get('uploader', info.get('artist', 'Unknown Artist')),
+                url=info.get('webpage_url', ''),
+                duration=info.get('duration', 0) or 0,
+                thumbnail_url=info.get('thumbnail'),
+                source="spotify"
+            )
+
+            self.logger.info(f"Spotify extraction successful: {track_info.title} by {track_info.artist}")
+            return track_info
+
+        except Exception as e:
+            self.logger.error(f"Spotify sync extraction error: {e}")
+            return None
+
+    async def smart_search_with_fallback(self, query: str) -> Optional[TrackInfo]:
+        """スマート検索（YouTube→Spotify フォールバック）"""
+        try:
+            # 1. 通常のYouTube検索
+            youtube_result = await self.search_track(query)
+
+            if youtube_result and self._is_high_quality_result(youtube_result):
+                self.logger.info(f"High quality YouTube result found for: {query}")
+                return youtube_result
+
+            # 2. Spotify フォールバック検索
+            self.logger.info(f"Trying Spotify fallback for: {query}")
+            spotify_search_query = f"ytsearch:site:youtube.com {query} music OR song"
+
+            # Spotifyで楽曲情報を検索
+            enhanced_result = await self.search_track(spotify_search_query)
+
+            if enhanced_result and self._calculate_music_score(enhanced_result.__dict__, query) > 5:
+                enhanced_result.source = "spotify_via_youtube"
+                self.logger.info(f"Spotify fallback successful for: {query}")
+                return enhanced_result
+
+            # 3. 元のYouTube結果を返す（低品質でも）
+            self.logger.warning(f"Fallback to original YouTube result for: {query}")
+            return youtube_result
+
+        except Exception as e:
+            self.logger.error(f"Smart search error: {e}")
+            # フォールバック: 通常の検索
+            return await self.search_track(query)
+
+    def _is_high_quality_result(self, track_info: TrackInfo) -> bool:
+        """楽曲結果が高品質かどうか判定"""
+        if not track_info:
+            return False
+
+        # 仮のTrackInfoオブジェクトからdict形式に変換
+        track_dict = {
+            'title': track_info.title,
+            'uploader': track_info.artist,
+            'duration': track_info.duration
+        }
+
+        # 既存のスコアリング機能を活用
+        score = self._calculate_music_score(track_dict, track_info.title)
+
+        # スコア5以上を高品質と判定
+        return score >= 5
