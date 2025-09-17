@@ -77,7 +77,7 @@ Kyrios/
 │   └── logging.py      # ログシステム
 ├── events/             # カスタムイベントハンドラー
 │   └── __init__.py
-├── utils/              # 共通ユーティリティ
+├── common/             # 共通ユーティリティ
 │   ├── __init__.py
 │   └── image_analyzer.py # 画像解析・メタデータ抽出
 ├── di/                 # 依存性注入システム
