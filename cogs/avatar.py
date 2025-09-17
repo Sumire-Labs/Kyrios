@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, Union, List, Tuple
 
 from database.models import AvatarHistoryType
-from common.image_analyzer import ImageAnalyzer
+from common import ImageAnalyzer, EmbedBuilder, UIColors, UIEmojis, UserFormatter, ButtonStyles
 
 
 class AvatarDownloadView(discord.ui.View):
