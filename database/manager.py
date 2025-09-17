@@ -153,7 +153,7 @@ class DatabaseManager:
             if log_type:
                 statement = statement.where(Log.log_type == log_type)
 
-            statement = statement.order_by(desc(Log.timestamp)).limit(limit)
+            statement = statement.order_by(Log.timestamp.desc()).limit(limit)
             result = await session.execute(statement)
             return list(result.scalars().all())
 
@@ -204,7 +204,7 @@ class DatabaseManager:
         async with self.async_session() as session:
             statement = select(TicketMessage).where(
                 TicketMessage.ticket_id == ticket_id
-            ).order_by(TicketMessage.timestamp)
+            ).order_by(TicketMessage.timestamp.desc())
             result = await session.execute(statement)
             return list(result.scalars().all())
 
@@ -229,8 +229,8 @@ class DatabaseManager:
                 image_size=image_size
             )
             session.add(history)
-            session.flush()  # IDを取得するため（コミットはしない）
-            session.refresh(history)
+            await session.flush()  # IDを取得するため（コミットはしない）
+            await session.refresh(history)
 
             # 2. ユーザー統計を同じトランザクション内で更新
             await self._update_user_avatar_stats_sync(user_id, history_type, session)
@@ -243,7 +243,7 @@ class DatabaseManager:
         async with self.async_session() as session:
             statement = select(AvatarHistory).where(
                 AvatarHistory.user_id == user_id
-            ).order_by(desc(AvatarHistory.timestamp)).limit(limit)
+            ).order_by(AvatarHistory.timestamp.desc()).limit(limit)
             result = await session.execute(statement)
             return list(result.scalars().all())
 
@@ -286,7 +286,7 @@ class DatabaseManager:
             old_logs = list(result.scalars().all())
 
             for log in old_logs:
-                session.delete(log)
+                await session.delete(log)
 
             await session.commit()
             self.logger.info(f"Cleaned up {len(old_logs)} old log entries")

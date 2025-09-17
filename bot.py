@@ -4,6 +4,7 @@ import logging
 import asyncio
 from pathlib import Path
 import sys
+from typing import Union
 
 from di import container, inject_dependencies, ConfigDep, DatabaseDep, EventBusDep, CogFactoryDep
 from dependency_injector.wiring import inject, Provide
@@ -38,7 +39,7 @@ class KyriosBot(commands.Bot):
 
         self.logger = logging.getLogger(__name__)
 
-    def _create_activity(self) -> discord.Activity:
+    def _create_activity(self) -> Union[discord.Activity, discord.Game, discord.Streaming]:
         """設定に基づいてDiscordアクティビティを作成"""
         activity_type = self.settings.status_type.lower()
         message = self.settings.status_message

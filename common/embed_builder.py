@@ -1,6 +1,6 @@
 import discord
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 
 class EmbedBuilder:
@@ -170,7 +170,7 @@ class EmbedBuilder:
     @staticmethod
     def set_footer_with_user(
         embed: discord.Embed,
-        user: discord.User,
+        user: Union[discord.User, discord.Member],
         additional_text: str = "",
         bot_name: str = "Kyrios"
     ) -> discord.Embed:

@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 
 from database.models import LogType
-from common import EmbedBuilder, LogUtils, UIEmojis, UserFormatter
+from common import EmbedBuilder, LogUtils, UIEmojis, UIColors, UserFormatter
 
 
 class LoggingCog(commands.Cog):

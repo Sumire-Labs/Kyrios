@@ -41,7 +41,7 @@ class UserFormatter:
         return info
 
     @staticmethod
-    def format_channel_info(channel: discord.abc.GuildChannel) -> str:
+    def format_channel_info(channel: Union[discord.abc.GuildChannel, discord.abc.MessageableChannel]) -> str:
         """チャンネル情報をフォーマット"""
         if hasattr(channel, 'mention'):
             return channel.mention
@@ -136,11 +136,12 @@ class UserFormatter:
 
         size_names = ["B", "KB", "MB", "GB"]
         i = 0
-        while size_bytes >= 1024.0 and i < len(size_names) - 1:
-            size_bytes /= 1024.0
+        size_float = float(size_bytes)
+        while size_float >= 1024.0 and i < len(size_names) - 1:
+            size_float /= 1024.0
             i += 1
 
-        return f"{size_bytes:.1f} {size_names[i]}"
+        return f"{size_float:.1f} {size_names[i]}"
 
     @staticmethod
     def format_duration(seconds: int) -> str:
@@ -205,7 +206,7 @@ class UserFormatter:
         return f"チャンネルID: {channel.id}"
 
     @staticmethod
-    def safe_color_from_hex(hex_color: Optional[str], fallback_color: discord.Color = None) -> discord.Color:
+    def safe_color_from_hex(hex_color: Optional[str], fallback_color: Optional[discord.Color] = None) -> discord.Color:
         """16進カラーコードから安全にDiscord.Colorを作成"""
         if not hex_color:
             return fallback_color or discord.Color.default()

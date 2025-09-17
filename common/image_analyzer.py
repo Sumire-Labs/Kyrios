@@ -93,10 +93,10 @@ class ImageAnalyzer:
                 small_image = small_image.convert('RGB')
 
             # 色を取得
-            colors: Optional[List[Tuple[int, Tuple[int, int, int]]]] = small_image.getcolors(maxcolors=256)
-            if colors:
+            colors_raw = small_image.getcolors(maxcolors=256)
+            if colors_raw:
                 # 最も多く使われている色
-                dominant_color = max(colors, key=lambda x: x[0])
+                dominant_color = max(colors_raw, key=lambda x: x[0])
                 rgb = dominant_color[1]  # Tuple[int, int, int]
                 return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
             else:
