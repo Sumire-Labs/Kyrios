@@ -22,7 +22,7 @@ class YouTubeExtractor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-        # yt-dlp設定 - 高品質音声用
+        # yt-dlp設定 - 高品質音声用（修正版）
         self.ytdl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best',
             'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -35,14 +35,7 @@ class YouTubeExtractor:
             'no_warnings': True,
             'default_search': 'auto',
             'source_address': '0.0.0.0',
-            'extractaudio': True,
-            'audioformat': 'opus',
-            'audioquality': '0',  # 最高品質
-            'postprocessors': [{
-                'key': 'FFmpegAudioConvertor',
-                'preferredcodec': 'opus',
-                'preferredquality': '192',
-            }],
+            # postprocessorsを削除（Discord.pyで直接ストリームを使用するため不要）
         }
 
         # FFmpeg設定 - Discord最適化 & ノイズ削減
