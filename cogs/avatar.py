@@ -55,14 +55,12 @@ class AvatarDownloadView(discord.ui.View):
                 # 指定サイズのアバターURLを生成
                 sized_url = self.avatar_url.replace('1024', str(size)) if '1024' in self.avatar_url else f"{self.avatar_url}?size={size}"
 
-                embed = discord.Embed(
-                    title=f"🖼️ {self.user.display_name} のアバター ({size}px)",
-                    color=discord.Color.blue(),
-                    timestamp=datetime.now()
+                embed = EmbedBuilder.create_info_embed(
+                    f"🖼️ {self.user.display_name} のアバター ({size}px)"
                 )
                 embed.set_image(url=sized_url)
                 embed.add_field(name="💾 ダウンロードURL", value=f"[クリックしてダウンロード]({sized_url})", inline=False)
-                embed.add_field(name="📏 サイズ", value=f"{size}×{size}px", inline=True)
+                embed.add_field(name="📏 サイズ", value=UserFormatter.format_code_inline(f"{size}×{size}px"), inline=True)
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -75,10 +73,9 @@ class AvatarDownloadView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
 
         try:
-            embed = discord.Embed(
+            embed = EmbedBuilder.create_base_embed(
                 title=f"🎨 {self.user.display_name} のバナー",
-                color=discord.Color.purple(),
-                timestamp=datetime.now()
+                color=UIColors.AVATAR
             )
             embed.set_image(url=self.banner_url)
             embed.add_field(name="💾 ダウンロードURL", value=f"[クリックしてダウンロード]({self.banner_url})", inline=False)
@@ -104,10 +101,9 @@ class AvatarHistoryView(discord.ui.View):
         try:
             stats = await self.bot.database.get_user_avatar_stats(self.user.id)
 
-            embed = discord.Embed(
+            embed = EmbedBuilder.create_base_embed(
                 title=f"📊 {self.user.display_name} のアバター統計",
-                color=discord.Color.gold(),
-                timestamp=datetime.now()
+                color=UIColors.PERFORMANCE
             )
 
             if stats:
@@ -139,10 +135,9 @@ class AvatarHistoryView(discord.ui.View):
         try:
             history = await self.bot.database.get_avatar_history(self.user.id, limit=5)
 
-            embed = discord.Embed(
+            embed = EmbedBuilder.create_base_embed(
                 title=f"📜 {self.user.display_name} のアバター履歴",
-                color=discord.Color.blurple(),
-                timestamp=datetime.now()
+                color=UIColors.AVATAR
             )
 
             if history:
@@ -218,16 +213,20 @@ class AvatarCog(commands.Cog):
                 banner_info = await self.image_analyzer.analyze_image(banner_url)
 
             # メインEmbed作成
-            embed = discord.Embed(
+            try:
+                color = discord.Color.from_str(avatar_info.get('dominant_color', '#808080'))
+            except:
+                color = UIColors.AVATAR
+
+            embed = EmbedBuilder.create_base_embed(
                 title=f"🖼️ {target_user.display_name} のアバター・バナー情報",
-                color=discord.Color.from_str(avatar_info.get('dominant_color', '#808080')),
-                timestamp=datetime.now()
+                color=color
             )
 
             # ユーザー基本情報
             embed.add_field(
                 name="👤 ユーザー情報",
-                value=f"**名前:** {target_user.display_name}\n**ID:** `{target_user.id}`\n**アカウント作成:** <t:{int(target_user.created_at.timestamp())}:R>",
+                value=f"**名前:** {target_user.display_name}\n**ID:** {UserFormatter.format_id(target_user.id)}\n**アカウント作成:** {UserFormatter.format_timestamp(target_user.created_at, 'R')}",
                 inline=False
             )
 
@@ -324,10 +323,9 @@ class AvatarCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Avatar command error: {e}", exc_info=True)
-            error_embed = discord.Embed(
-                title="❌ エラー",
-                description="アバター情報の取得中にエラーが発生しました。",
-                color=discord.Color.red()
+            error_embed = EmbedBuilder.create_error_embed(
+                "エラー",
+                "アバター情報の取得中にエラーが発生しました。"
             )
             await interaction.followup.send(embed=error_embed, ephemeral=True)
 
