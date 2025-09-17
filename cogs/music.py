@@ -28,13 +28,14 @@ class QuickAddModal(discord.ui.Modal):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-
-        # ローディングEmbed表示
-        loading_embed = EmbedBuilder.create_loading_embed("楽曲検索中", "YouTubeから楽曲を検索しています...")
-        message = await interaction.followup.send(embed=loading_embed, ephemeral=True)
-
         try:
+            self.bot.logger.info(f"QuickAdd modal submitted by {interaction.user.name} with query: {self.query.value}")
+            await interaction.response.defer(ephemeral=True)
+
+            # ローディングEmbed表示
+            loading_embed = EmbedBuilder.create_loading_embed("楽曲検索中", "YouTubeから楽曲を検索しています...")
+            message = await interaction.followup.send(embed=loading_embed, ephemeral=True)
+
             # ボイスチャンネルチェック
             if not interaction.user.voice:
                 error_embed = EmbedBuilder.create_error_embed("接続エラー", "ボイスチャンネルに参加してから使用してください")
@@ -42,6 +43,7 @@ class QuickAddModal(discord.ui.Modal):
                 return
 
             # 楽曲検索・追加
+            self.bot.logger.info(f"Searching for track: {self.query.value}")
             track_info = await self.bot.music_service.search_and_add(
                 guild_id=self.guild_id,
                 query=self.query.value,
@@ -54,10 +56,18 @@ class QuickAddModal(discord.ui.Modal):
                 f"🎵 **{track_info.title}** をキューに追加しました"
             )
             await message.edit(embed=success_embed)
+            self.bot.logger.info(f"Successfully added track: {track_info.title}")
 
         except Exception as e:
-            error_embed = EmbedBuilder.create_error_embed("追加失敗", f"楽曲の追加に失敗しました: {str(e)}")
-            await message.edit(embed=error_embed)
+            self.bot.logger.error(f"Modal submit error: {e}")
+            try:
+                error_embed = EmbedBuilder.create_error_embed("追加失敗", f"楽曲の追加に失敗しました: {str(e)}")
+                if 'message' in locals():
+                    await message.edit(embed=error_embed)
+                else:
+                    await interaction.followup.send(embed=error_embed, ephemeral=True)
+            except Exception as e2:
+                self.bot.logger.error(f"Error handling error: {e2}")
 
 
 class MusicPlayerView(discord.ui.View):
@@ -105,8 +115,14 @@ class MusicPlayerView(discord.ui.View):
     @discord.ui.button(emoji="➕", label="楽曲追加", style=ButtonStyles.SUCCESS, row=1)
     async def add_to_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
         """楽曲追加モーダル"""
-        modal = QuickAddModal(self.bot, self.guild_id)
-        await interaction.response.send_modal(modal)
+        try:
+            self.bot.logger.info(f"Add to queue button pressed by {interaction.user.name}")
+            modal = QuickAddModal(self.bot, self.guild_id)
+            await interaction.response.send_modal(modal)
+            self.bot.logger.info("Modal sent successfully")
+        except Exception as e:
+            self.bot.logger.error(f"Add to queue button error: {e}")
+            await interaction.response.send_message("❌ 楽曲追加モーダルの表示に失敗しました", ephemeral=True)
 
     # 🔧 内部メソッド - Kyriosパターン準拠
     async def _handle_player_action(self, interaction: discord.Interaction, action: str):
