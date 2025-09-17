@@ -59,6 +59,10 @@ class QuickAddModal(discord.ui.Modal):
             await message.edit(embed=success_embed)
             self.bot.logger.info(f"Successfully added track: {track_info.title}")
 
+            # 楽曲追加後にUIを更新
+            await MusicPlayerView.cleanup_old_player_ui(self.guild_id)
+            await self._refresh_player_ui(interaction)
+
         except Exception as e:
             self.bot.logger.error(f"Modal submit error: {e}")
             try:
@@ -70,12 +74,38 @@ class QuickAddModal(discord.ui.Modal):
             except Exception as e2:
                 self.bot.logger.error(f"Error handling error: {e2}")
 
+    async def _refresh_player_ui(self, interaction: discord.Interaction):
+        """プレイヤーUIを新しくチャンネルの下に表示"""
+        try:
+            # 現在の状態取得
+            track_data = await self.bot.music_service.get_current_track(self.guild_id)
+            session_data = await self.bot.music_service.get_session_info(self.guild_id)
+            queue_data = await self.bot.music_service.get_queue(self.guild_id)
+
+            if not track_data:
+                return
+
+            # 新しいプレイヤーEmbed作成
+            embed = EmbedBuilder.create_music_player_embed(track_data, session_data, queue_data)
+            view = MusicPlayerView(self.bot, self.guild_id)
+
+            # チャンネルに新しいメッセージとして送信
+            new_message = await interaction.channel.send(embed=embed, view=view)
+
+            # 自動更新開始
+            view.start_auto_update(new_message)
+
+        except Exception as e:
+            self.bot.logger.error(f"Player UI refresh error: {e}")
+
 
 class MusicPlayerView(discord.ui.View):
     """オールインワン音楽プレイヤー - Kyriosパターン準拠"""
 
     # クラス変数でアクティブなインスタンスを追跡
     _active_instances = set()
+    # ギルドごとのアクティブプレイヤーメッセージを追跡
+    _guild_messages = {}
 
     def __init__(self, bot, guild_id: int):
         super().__init__(timeout=None)  # 永続View
@@ -157,6 +187,9 @@ class MusicPlayerView(discord.ui.View):
                 success = await self.bot.music_service.skip_to_next(self.guild_id)
                 if success:
                     embed = EmbedBuilder.create_success_embed("スキップ", "次の楽曲にスキップしました")
+                    # スキップ後にUIを更新
+                    await MusicPlayerView.cleanup_old_player_ui(self.guild_id)
+                    await self._refresh_player_ui_after_skip(interaction)
                 else:
                     embed = EmbedBuilder.create_error_embed("スキップエラー", "次の楽曲への移行に失敗しました")
                 await interaction.followup.send(embed=embed, ephemeral=True)
@@ -250,6 +283,8 @@ class MusicPlayerView(discord.ui.View):
     def start_auto_update(self, message):
         """プログレスバー自動更新開始"""
         self.message = message
+        # このギルドのアクティブメッセージとして登録
+        MusicPlayerView._guild_messages[self.guild_id] = message
         if self.update_task is None or self.update_task.done():
             self.update_task = asyncio.create_task(self._auto_update_loop())
 
@@ -260,6 +295,9 @@ class MusicPlayerView(discord.ui.View):
 
         # インスタンスをアクティブリストから削除
         MusicPlayerView._active_instances.discard(self)
+        # ギルドメッセージからも削除
+        if self.guild_id in MusicPlayerView._guild_messages:
+            del MusicPlayerView._guild_messages[self.guild_id]
 
     @classmethod
     def cleanup_all_tasks(cls):
@@ -269,9 +307,29 @@ class MusicPlayerView(discord.ui.View):
                 if instance.update_task and not instance.update_task.done():
                     instance.update_task.cancel()
             cls._active_instances.clear()
+            cls._guild_messages.clear()
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Error during cleanup_all_tasks: {e}")
+
+    @classmethod
+    async def cleanup_old_player_ui(cls, guild_id: int):
+        """古いプレイヤーUIを削除"""
+        try:
+            if guild_id in cls._guild_messages:
+                old_message = cls._guild_messages[guild_id]
+                try:
+                    # 古いメッセージのViewを無効化
+                    await old_message.edit(view=None)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).debug(f"Could not disable old view: {e}")
+
+                # ギルドメッセージリストから削除
+                del cls._guild_messages[guild_id]
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error cleaning up old player UI: {e}")
 
     async def _auto_update_loop(self):
         """プログレスバー自動更新ループ"""
@@ -329,6 +387,32 @@ class MusicPlayerView(discord.ui.View):
             pass
         except Exception as e:
             self.bot.logger.error(f"Progress update error: {e}")
+
+    async def _refresh_player_ui_after_skip(self, interaction: discord.Interaction):
+        """スキップ後にプレイヤーUIを更新（プログレスバー継続）"""
+        try:
+            # 現在の状態取得
+            track_data = await self.bot.music_service.get_current_track(self.guild_id)
+            session_data = await self.bot.music_service.get_session_info(self.guild_id)
+            queue_data = await self.bot.music_service.get_queue(self.guild_id)
+
+            if not track_data:
+                return
+
+            # 新しいプレイヤーEmbed作成
+            embed = EmbedBuilder.create_music_player_embed(track_data, session_data, queue_data)
+            view = MusicPlayerView(self.bot, self.guild_id)
+
+            # チャンネルに新しいメッセージとして送信
+            new_message = await interaction.channel.send(embed=embed, view=view)
+
+            # 自動更新開始（重要：プログレスバーを継続）
+            view.start_auto_update(new_message)
+
+            self.bot.logger.info(f"Player UI refreshed after skip for guild {self.guild_id}")
+
+        except Exception as e:
+            self.bot.logger.error(f"Player UI refresh after skip error: {e}")
 
 
 class MusicCog(commands.Cog):
@@ -400,12 +484,16 @@ class MusicCog(commands.Cog):
             )
 
             if existing_player and existing_player.is_playing():
-                # キューに追加のみ
+                # キューに追加 + UI更新
                 embed = EmbedBuilder.create_success_embed(
                     "キューに追加",
                     f"🎵 **{track_info.title}** をキューに追加しました"
                 )
                 await message.edit(embed=embed)
+
+                # 古いプレイヤーUIを削除して新しいUIを下に表示
+                await MusicPlayerView.cleanup_old_player_ui(interaction.guild.id)
+                await self._display_music_player_refresh(interaction.channel, interaction.guild.id)
             else:
                 # 5️⃣ 新規プレイヤー起動 + UIマネージャー表示
                 await self.music_service.start_player(interaction.guild.id)
@@ -507,6 +595,37 @@ class MusicCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Music player display error: {e}")
+
+    async def _display_music_player_refresh(self, channel, guild_id: int):
+        """音楽プレイヤーをチャンネルの下に新しく表示（UI更新用）"""
+        try:
+            # 現在の状態取得
+            track_data = await self.music_service.get_current_track(guild_id)
+            session_data = await self.music_service.get_session_info(guild_id)
+            queue_data = await self.music_service.get_queue(guild_id)
+
+            if not track_data:
+                return
+
+            # 統合プレイヤーEmbed作成
+            embed = EmbedBuilder.create_music_player_embed(track_data, session_data, queue_data)
+            view = MusicPlayerView(self.bot, guild_id)
+
+            # チャンネルに新しいメッセージとして送信
+            new_message = await channel.send(embed=embed, view=view)
+
+            # 自動更新開始
+            view.start_auto_update(new_message)
+
+            # EventBus通知
+            await self.event_bus.emit_event("music_player_refreshed", {
+                "guild_id": guild_id,
+                "track_title": track_data.get('title', 'Unknown'),
+                "message_id": new_message.id
+            })
+
+        except Exception as e:
+            self.logger.error(f"Music player refresh display error: {e}")
 
     async def cog_unload(self):
         """Cog終了時のクリーンアップ"""
