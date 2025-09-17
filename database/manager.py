@@ -411,24 +411,32 @@ class DatabaseManager:
         voice_channel_id: int,
         text_channel_id: int
     ) -> MusicSession:
-        """音楽セッションを作成"""
+        """音楽セッションを作成または更新（UPSERT）"""
         async with self.transaction() as session:
-            # 既存セッションがあれば削除
+            # 既存セッションを検索
             statement = select(MusicSession).where(MusicSession.guild_id == guild_id)
             result = await session.execute(statement)
             existing = result.scalars().first()
-            if existing:
-                await session.delete(existing)
 
-            music_session = MusicSession(
-                guild_id=guild_id,
-                voice_channel_id=voice_channel_id,
-                text_channel_id=text_channel_id
-            )
-            session.add(music_session)
-            await session.flush()
-            self.logger.info(f"Created music session for guild {guild_id}")
-            return music_session
+            if existing:
+                # 既存セッションを更新
+                existing.voice_channel_id = voice_channel_id
+                existing.text_channel_id = text_channel_id
+                existing.updated_at = datetime.now()
+                session.add(existing)
+                self.logger.info(f"Updated existing music session for guild {guild_id}")
+                return existing
+            else:
+                # 新規セッション作成
+                music_session = MusicSession(
+                    guild_id=guild_id,
+                    voice_channel_id=voice_channel_id,
+                    text_channel_id=text_channel_id
+                )
+                session.add(music_session)
+                await session.flush()
+                self.logger.info(f"Created new music session for guild {guild_id}")
+                return music_session
 
     async def update_session_current_track(self, guild_id: int, track_id: int) -> bool:
         """セッションの現在楽曲を更新"""
