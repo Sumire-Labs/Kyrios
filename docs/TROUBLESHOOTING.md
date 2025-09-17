@@ -324,6 +324,140 @@ grep "ERROR" data/logs/kyrios.log
 
 ---
 
+## v0.1.6 特有の問題
+
+### ❌ 共通関数インポートエラー
+
+#### 症状
+```
+ImportError: cannot import name 'UserFormatter' from 'common'
+ModuleNotFoundError: No module named 'common'
+```
+
+#### 原因と解決策
+
+**原因1**: キャッシュの問題
+```bash
+# Pythonキャッシュクリア
+find . -name "*.pyc" -delete
+find . -name "__pycache__" -type d -exec rm -rf {} +
+
+# Poetryキャッシュクリア
+poetry cache clear pypi --all
+```
+
+**原因2**: インストールの問題
+```bash
+# 依存関係の再インストール
+poetry install --no-cache
+
+# 仮想環境の再作成
+rm -rf .venv
+poetry install
+```
+
+#### 対処手順
+1. ボット停止
+2. キャッシュクリア
+3. 仮想環境再作成
+4. ボット再起動
+
+### ❌ 権限チェックエラー
+
+#### 症状
+```
+AttributeError: 'NoneType' object has no attribute 'guild_permissions'
+TypeError: UserFormatter.has_manage_permissions() missing 1 required positional argument
+```
+
+#### 原因と解決策
+
+**原因**: 不正なユーザーオブジェクト渡し
+```python
+# ❌ 間違った使用法
+UserFormatter.has_manage_permissions()  # 引数なし
+
+# ✅ 正しい使用法
+UserFormatter.has_manage_permissions(interaction.user)
+```
+
+**対処方法**:
+```python
+# Null安全性チェック
+if interaction.user and UserFormatter.has_manage_permissions(interaction.user):
+    # 管理者処理
+    pass
+```
+
+### ❌ チャンネル参照エラー
+
+#### 症状
+```
+AttributeError: 'NoneType' object has no attribute 'name'
+AttributeError: 'TextChannel' object has no attribute 'mention'
+```
+
+#### 原因と解決策
+
+**v0.1.6での対応**: 共通関数が自動的に処理
+```python
+# 旧版での問題（v0.1.5以前）
+channel_name = f"#{channel.name}"  # channel.nameがNoneの場合エラー
+
+# v0.1.6での解決
+channel_name = UserFormatter.format_channel_name(channel)  # 安全
+```
+
+### ❌ 色変換エラー
+
+#### 症状
+```
+ValueError: Invalid color value: 'invalid_color'
+discord.errors.HTTPException: Invalid embed color
+```
+
+#### 原因と解決策
+
+**v0.1.6での対応**: 安全な色変換関数
+```python
+# 旧版での問題
+try:
+    color = discord.Color.from_str(hex_color)
+except:
+    color = discord.Color.default()
+
+# v0.1.6での解決
+color = UserFormatter.safe_color_from_hex(hex_color, UIColors.DEFAULT)
+```
+
+---
+
+## リファクタリング後の互換性問題
+
+### 🔄 v0.1.5→v0.1.6移行時の問題
+
+#### メソッド名変更エラー
+```
+AttributeError: module 'common' has no attribute 'old_function_name'
+```
+
+**解決**: [MIGRATION.md](MIGRATION.md)の移行ガイドを参照
+
+#### 設定ファイル互換性
+```toml
+# v0.1.6で新しく追加された設定（オプション）
+[eventbus]
+max_history_size = 1000
+
+[status]
+type = "game"
+message = "Kyrios v0.1.6"
+```
+
+**注意**: これらの設定は必須ではありません。未設定でもボットは正常動作します。
+
+---
+
 ## パフォーマンス関連の問題
 
 ### 🐌 レスポンスが遅い
@@ -357,21 +491,47 @@ htop
 df -h
 ```
 
-### 💾 メモリ不足
+### 💾 メモリ不足・リーク
 
 #### 症状
 ```
 MemoryError
+OutOfMemoryError: Process exceeded memory limit
+```
+
+#### v0.1.6での改善
+EventBusメモリリーク対策が実装済み：
+```toml
+[eventbus]
+max_history_size = 1000  # メモリ使用量制限
 ```
 
 #### 解決策
 
-**1. システムリソース確認**
-```bash
-free -h
+**1. EventBus設定最適化（v0.1.6）**
+```toml
+# 小規模サーバー
+[eventbus]
+max_history_size = 500
+
+# 大規模サーバー
+[eventbus]
+max_history_size = 2000
 ```
 
-**2. スワップファイル作成（緊急対応）**
+**2. システムリソース確認**
+```bash
+# メモリ使用量確認
+free -h
+
+# プロセス別メモリ使用量
+ps aux | grep "python bot.py"
+
+# v0.1.6でのメモリ統計確認
+# /ping コマンドで詳細表示
+```
+
+**3. スワップファイル作成（緊急対応）**
 ```bash
 sudo fallocate -l 1G /swapfile
 sudo chmod 600 /swapfile
@@ -379,7 +539,7 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-**3. 設定最適化**
+**4. 設定最適化**
 ```toml
 [database]
 backup_interval = 86400  # バックアップ頻度を下げる
@@ -387,6 +547,15 @@ backup_interval = 86400  # バックアップ頻度を下げる
 [logging]
 level = "ERROR"  # ログレベルを上げる
 max_size = 5242880  # ログファイルサイズを小さく
+
+[eventbus]
+max_history_size = 500  # メモリ使用量削減
+```
+
+**5. 定期再起動（最終手段）**
+```bash
+# 週1回の自動再起動（crontab）
+0 3 * * 0 sudo systemctl restart kyrios-bot.service
 ```
 
 ---

@@ -362,6 +362,152 @@ log_joins = true                      # メンバー参加をログ
 
 ---
 
+## 共通ユーティリティ関数 (v0.1.6+)
+
+Kyrios v0.1.6では、全cogで使用可能な共通ユーティリティ関数が追加されました。これらの関数により、一貫したUI/UXとコード品質が実現されています。
+
+### UserFormatter クラス
+
+#### 権限チェック関数
+
+##### `UserFormatter.has_manage_permissions(user) -> bool`
+**説明**: ユーザーが管理権限を持っているかチェック
+
+**パラメーター**:
+- `user`: discord.User または discord.Member
+
+**戻り値**: bool - 管理権限の有無
+
+**使用例**:
+```python
+from common import UserFormatter
+
+if UserFormatter.has_manage_permissions(interaction.user):
+    # 管理者のみ実行可能な処理
+    await handle_admin_action()
+else:
+    await interaction.response.send_message("❌ 権限が不足しています", ephemeral=True)
+```
+
+**チェック対象**:
+- `manage_messages` 権限
+- `administrator` 権限
+
+#### チャンネル情報フォーマット
+
+##### `UserFormatter.format_channel_name(channel) -> str`
+**説明**: チャンネル名を統一フォーマットで表示（#付き）
+
+**パラメーター**:
+- `channel`: Discordチャンネルオブジェクト
+
+**戻り値**: str - フォーマット済みチャンネル名
+
+**使用例**:
+```python
+channel_display = UserFormatter.format_channel_name(channel)
+# 出力: "#general" または "チャンネルID: 123456789"
+```
+
+##### `UserFormatter.format_channel_info(channel) -> str`
+**説明**: チャンネル情報を安全にフォーマット（メンション形式）
+
+**パラメーター**:
+- `channel`: Discordチャンネルオブジェクト
+
+**戻り値**: str - メンション可能なチャンネル情報
+
+**使用例**:
+```python
+channel_ref = UserFormatter.format_channel_info(channel)
+# 出力: "<#123456789>" または "#channel-name" または "チャンネルID: 123456789"
+```
+
+#### ユーザーID処理
+
+##### `UserFormatter.format_user_id_or_mention(user_input) -> Optional[int]`
+**説明**: ユーザーIDまたはメンションから安全にユーザーIDを抽出
+
+**パラメーター**:
+- `user_input`: str - ユーザーIDまたはメンション文字列
+
+**戻り値**: Optional[int] - 有効なユーザーID、無効な場合はNone
+
+**対応形式**:
+- 直接ID: `"123456789012345678"`
+- メンション: `"<@123456789012345678>"`
+- ニックネームメンション: `"<@!123456789012345678>"`
+
+**使用例**:
+```python
+user_id = UserFormatter.format_user_id_or_mention(user_input)
+if user_id is None:
+    await interaction.response.send_message("❌ 無効なユーザーIDです", ephemeral=True)
+    return
+
+user = interaction.guild.get_member(user_id)
+```
+
+#### 色変換機能
+
+##### `UserFormatter.safe_color_from_hex(hex_color, fallback_color) -> discord.Color`
+**説明**: 16進カラーコードから安全にDiscord.Colorを作成
+
+**パラメーター**:
+- `hex_color`: Optional[str] - 16進カラーコード（例：`"#ff0000"`）
+- `fallback_color`: discord.Color - 変換失敗時のフォールバック色
+
+**戻り値**: discord.Color - 有効なDiscord色オブジェクト
+
+**使用例**:
+```python
+from common import UIColors
+
+# アバターの主要色を安全に変換
+color = UserFormatter.safe_color_from_hex(
+    avatar_info.get('dominant_color'),
+    UIColors.AVATAR
+)
+
+embed = discord.Embed(title="アバター情報", color=color)
+```
+
+**エラーハンドリング**:
+- 無効な16進コード → フォールバック色を使用
+- None値 → フォールバック色を使用
+- 例外発生 → フォールバック色を使用
+
+### 使用方法
+
+これらの共通関数は `common` パッケージからインポートして使用します：
+
+```python
+from common import UserFormatter
+
+class YourCog(commands.Cog):
+    async def your_command(self, interaction: discord.Interaction):
+        # 権限チェック
+        if not UserFormatter.has_manage_permissions(interaction.user):
+            return await interaction.response.send_message("❌ 権限不足", ephemeral=True)
+
+        # 安全なユーザーID取得
+        user_id = UserFormatter.format_user_id_or_mention(user_input)
+        if user_id is None:
+            return await interaction.response.send_message("❌ 無効なユーザーID", ephemeral=True)
+
+        # チャンネル情報の表示
+        channel_name = UserFormatter.format_channel_name(interaction.channel)
+```
+
+### メリット
+
+1. **コード統一性**: 全cogで同じロジックを使用
+2. **エラーハンドリング**: 一箇所で例外処理を管理
+3. **メンテナンス性**: 修正が必要な場合は共通関数のみ更新
+4. **型安全性**: 適切な型チェックとバリデーション
+
+---
+
 ## 開発者向けAPI
 
 ### イベントバス使用例

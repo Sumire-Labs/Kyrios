@@ -238,7 +238,7 @@ CMD ["python", "bot.py"]
 ### Docker Compose
 
 ```yaml
-version: '3.8'
+version: '3.13'
 
 services:
   kyrios-bot:

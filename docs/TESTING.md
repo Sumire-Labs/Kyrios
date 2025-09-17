@@ -769,9 +769,26 @@ jobs:
 
     - name: Install Poetry
       uses: snok/install-poetry@v1
+      with:
+        poetry-version: latest
+
+    - name: Configure Poetry
+      run: poetry config virtualenvs.create true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pypoetry
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
       run: poetry install
+
+    - name: Run linting (ruff)
+      run: poetry run ruff check .
+
+    - name: Run type checking (mypy)
+      run: poetry run mypy . --ignore-missing-imports
 
     - name: Run tests with coverage
       run: |
@@ -781,6 +798,7 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
 ```
 
 ### テストの実行パターン
@@ -864,4 +882,193 @@ async def test_database_performance(in_memory_db):
     assert (end_time - start_time) < 1.0  # 1秒以内に完了
 ```
 
-この包括的なテストスイートにより、Kyriosの品質と信頼性を継続的に維持できます。
+## v0.1.6 新機能のテスト
+
+### 共通ユーティリティ関数のテスト
+
+#### UserFormatter テスト
+```python
+# tests/unit/test_user_formatter_v016.py
+import pytest
+import discord
+from unittest.mock import MagicMock
+
+from common import UserFormatter
+
+
+class TestUserFormatterNewFeatures:
+    """v0.1.6で追加された機能のテスト"""
+
+    def test_has_manage_permissions_with_admin(self):
+        """管理者権限チェックのテスト"""
+        member = MagicMock(spec=discord.Member)
+        member.guild_permissions.administrator = True
+        member.guild_permissions.manage_messages = False
+
+        assert UserFormatter.has_manage_permissions(member) is True
+
+    def test_has_manage_permissions_with_manage_messages(self):
+        """メッセージ管理権限チェックのテスト"""
+        member = MagicMock(spec=discord.Member)
+        member.guild_permissions.administrator = False
+        member.guild_permissions.manage_messages = True
+
+        assert UserFormatter.has_manage_permissions(member) is True
+
+    def test_has_manage_permissions_no_permissions(self):
+        """権限なしユーザーのテスト"""
+        member = MagicMock(spec=discord.Member)
+        member.guild_permissions.administrator = False
+        member.guild_permissions.manage_messages = False
+
+        assert UserFormatter.has_manage_permissions(member) is False
+
+    def test_format_channel_name_with_name(self):
+        """チャンネル名フォーマットのテスト"""
+        channel = MagicMock()
+        channel.name = "general"
+
+        result = UserFormatter.format_channel_name(channel)
+        assert result == "#general"
+
+    def test_format_channel_name_no_name(self):
+        """名前なしチャンネルのテスト"""
+        channel = MagicMock()
+        channel.id = 123456789
+        del channel.name
+
+        result = UserFormatter.format_channel_name(channel)
+        assert result == "チャンネルID: 123456789"
+
+    def test_safe_color_from_hex_valid(self):
+        """有効な色変換のテスト"""
+        result = UserFormatter.safe_color_from_hex("#ff0000", discord.Color.blue())
+        assert result.value == 0xff0000
+
+    def test_safe_color_from_hex_invalid(self):
+        """無効な色変換のテスト"""
+        fallback = discord.Color.blue()
+        result = UserFormatter.safe_color_from_hex("invalid", fallback)
+        assert result == fallback
+
+    def test_format_user_id_or_mention_variations(self):
+        """ユーザーIDメンション解析のテスト"""
+        # 直接ID
+        assert UserFormatter.format_user_id_or_mention("123456789012345678") == 123456789012345678
+
+        # 通常メンション
+        assert UserFormatter.format_user_id_or_mention("<@123456789012345678>") == 123456789012345678
+
+        # ニックネームメンション
+        assert UserFormatter.format_user_id_or_mention("<@!123456789012345678>") == 123456789012345678
+
+        # 無効な入力
+        assert UserFormatter.format_user_id_or_mention("invalid") is None
+```
+
+### リファクタリング検証テスト
+
+#### 共通化移行の検証
+```python
+# tests/integration/test_refactoring_v016.py
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+from cogs.tickets import TicketManagementView
+from common import UserFormatter
+
+
+class TestRefactoringIntegration:
+    """v0.1.6リファクタリングの統合テスト"""
+
+    @pytest.fixture
+    def mock_bot(self):
+        bot = MagicMock()
+        bot.database = AsyncMock()
+        return bot
+
+    @pytest.fixture
+    def mock_interaction_no_perms(self):
+        interaction = AsyncMock()
+        interaction.user = MagicMock(spec=discord.Member)
+        interaction.user.guild_permissions.administrator = False
+        interaction.user.guild_permissions.manage_messages = False
+        interaction.response = AsyncMock()
+        return interaction
+
+    async def test_ticket_permission_integration(self, mock_bot, mock_interaction_no_perms):
+        """チケット権限チェック統合テスト"""
+        # 権限なし + チケット所有者でない
+        mock_bot.database.get_ticket.return_value = MagicMock(user_id=999999)
+
+        view = TicketManagementView(mock_bot, 123)
+        await view.close_ticket(mock_interaction_no_perms, MagicMock())
+
+        # 権限エラーが正しく表示されることを確認
+        mock_interaction_no_perms.response.send_message.assert_called_once_with(
+            "❌ チケットをクローズする権限がありません。",
+            ephemeral=True
+        )
+
+    async def test_user_id_extraction_integration(self):
+        """ユーザーID抽出の統合テスト"""
+        # AssignModal で使用される機能の検証
+        test_cases = [
+            ("123456789012345678", 123456789012345678),
+            ("<@123456789012345678>", 123456789012345678),
+            ("<@!123456789012345678>", 123456789012345678),
+            ("invalid", None),
+        ]
+
+        for input_val, expected in test_cases:
+            result = UserFormatter.format_user_id_or_mention(input_val)
+            assert result == expected, f"Failed for input: {input_val}"
+```
+
+### 回帰テスト
+
+#### 既存機能の動作確認
+```python
+# tests/regression/test_v016_compatibility.py
+import pytest
+
+
+class TestBackwardCompatibility:
+    """v0.1.6での後方互換性テスト"""
+
+    def test_embed_builder_unchanged(self):
+        """EmbedBuilderの動作が変わっていないことを確認"""
+        from common import EmbedBuilder, UIColors
+
+        embed = EmbedBuilder.create_success_embed("Test", "Description")
+
+        assert embed.title == "Test"
+        assert embed.description == "Description"
+        assert embed.color == UIColors.SUCCESS
+
+    def test_ui_constants_unchanged(self):
+        """UI定数の値が変わっていないことを確認"""
+        from common import UIEmojis, UIColors
+
+        # 重要な絵文字・色が変更されていないことを確認
+        assert hasattr(UIEmojis, 'SUCCESS')
+        assert hasattr(UIEmojis, 'ERROR')
+        assert hasattr(UIColors, 'SUCCESS')
+        assert hasattr(UIColors, 'ERROR')
+
+    async def test_database_operations_unchanged(self, mock_database):
+        """データベース操作の互換性確認"""
+        # 既存のAPIが変更されていないことを確認
+        ticket = await mock_database.create_ticket(
+            guild_id=123,
+            channel_id=456,
+            user_id=789,
+            title="Test"
+        )
+
+        assert hasattr(ticket, 'id')
+        assert hasattr(ticket, 'guild_id')
+        assert hasattr(ticket, 'user_id')
+```
+
+この包括的なテストスイートにより、Kyriosの品質と信頼性を継続的に維持し、v0.1.6での変更が既存機能に悪影響を与えていないことを確認できます。
