@@ -643,4 +643,253 @@ async def monitor_performance(self, operation_name: str, operation):
         raise
 ```
 
+## 音楽システム開発例
+
+### 実装済み音楽システムの概要
+
+Kyriosには既に完全な音楽システムが実装されています。このセクションでは、音楽システムの設計パターンと拡張方法を説明します。
+
+#### 音楽システムアーキテクチャ
+
+```python
+# 音楽システムの主要コンポーネント
+music/
+├── music_service.py      # コアサービス・プレイヤー管理
+└── youtube_extractor.py  # YouTube音楽抽出
+
+cogs/
+└── music.py             # Discord UI・コマンド統合
+```
+
+#### 音楽システムのデザインパターン実装
+
+##### 1. Service Pattern + Player Pattern
+```python
+# music/music_service.py
+class MusicService:
+    """音楽システムメインサービス - Kyriosパターン準拠"""
+
+    def __init__(self, database_manager, event_bus, youtube_extractor):
+        self.database = database_manager
+        self.event_bus = event_bus
+        self.youtube_extractor = youtube_extractor
+        self.players: Dict[int, MusicPlayer] = {}
+
+    async def search_and_add(self, guild_id: int, query: str, requested_by: int):
+        # 検索・データベース保存・キュー追加
+        track_info = await self.youtube_extractor.search_track(query)
+        track = await self.database.create_track(...)
+        await self.database.add_to_queue(guild_id, track.id, requested_by)
+
+        # EventBus通知
+        await self.event_bus.emit_event("track_added", {...})
+        return track_info
+
+class MusicPlayer:
+    """個別ギルド用音楽プレイヤー"""
+
+    def __init__(self, guild_id: int, voice_client: VoiceClient, music_service):
+        self.guild_id = guild_id
+        self.voice_client = voice_client
+        self.music_service = music_service
+        self.current_track: Optional[Track] = None
+        self.loop_mode = LoopMode.NONE
+```
+
+##### 2. インタラクティブUI Pattern
+```python
+# cogs/music.py
+class MusicPlayerView(discord.ui.View):
+    """オールインワン音楽プレイヤー - Kyriosパターン準拠"""
+
+    def __init__(self, bot, guild_id: int):
+        super().__init__(timeout=None)  # 永続View
+        self.bot = bot
+        self.guild_id = guild_id
+
+    # 🎮 Row 1: メイン再生コントロール
+    @discord.ui.button(emoji="⏸️", style=ButtonStyles.PRIMARY, row=0)
+    async def play_pause_toggle(self, interaction, button):
+        await self._handle_player_action(interaction, "toggle")
+
+    @discord.ui.button(emoji="⏭️", style=ButtonStyles.SECONDARY, row=0)
+    async def next_track(self, interaction, button):
+        await self._handle_player_action(interaction, "skip")
+
+    # 🗂️ Row 2: キュー・追加操作
+    @discord.ui.button(emoji="➕", label="楽曲追加", style=ButtonStyles.SUCCESS, row=1)
+    async def add_to_queue(self, interaction, button):
+        modal = QuickAddModal(self.bot, self.guild_id)
+        await interaction.response.send_modal(modal)
+
+class QuickAddModal(discord.ui.Modal):
+    """楽曲追加用モーダル - Kyriosスタイル"""
+
+    query = discord.ui.TextInput(
+        label="YouTubeURL または 検索キーワード",
+        placeholder="楽曲のURLまたはタイトル・アーティスト名を入力...",
+        max_length=200
+    )
+
+    async def on_submit(self, interaction):
+        # 非ブロッキング楽曲追加処理
+        track_info = await self.bot.music_service.search_and_add(...)
+```
+
+##### 3. 共通関数の活用例
+```python
+# common/embed_builder.py の音楽機能
+@staticmethod
+def create_music_player_embed(track: Dict, session: Dict, queue: List[Dict]):
+    """統合音楽プレイヤーEmbed"""
+
+    # ステータス判定
+    status = f"{UIEmojis.PLAY} 再生中" if not session.get('is_paused') else f"{UIEmojis.PAUSE} 一時停止中"
+    color = UIColors.MUSIC_PLAYING if not session.get('is_paused') else UIColors.MUSIC_PAUSED
+
+    # プログレスバー作成
+    progress_bar = UserFormatter.create_progress_bar(
+        track.get('position', 0),
+        track.get('duration', 0),
+        18
+    )
+
+    embed = discord.Embed(title="🎵 Kyrios Music Player", color=color)
+    embed.description = f"""
+**🎶 [{track['title']}]({track['url']})**
+👤 **{track['artist']}**
+
+{progress_bar}
+{status} | 🔄 {session.get('loop_mode', 'none').upper()}
+"""
+
+    return embed
+
+# common/user_formatter.py の音楽機能
+@staticmethod
+def create_progress_bar(current: int, total: int, length: int = 20) -> str:
+    """音楽プログレスバー作成"""
+    if total <= 0:
+        return f"{UserFormatter.format_duration(0)} {'▱' * length} {UserFormatter.format_duration(0)}"
+
+    progress = min(current / total, 1.0)
+    filled = int(progress * length)
+    bar = "▰" * filled + "▱" * (length - filled)
+
+    return f"{UserFormatter.format_duration(current)} {bar} {UserFormatter.format_duration(total)}"
+
+@staticmethod
+def format_duration(seconds: int) -> str:
+    """秒を MM:SS 形式に変換"""
+    minutes, seconds = divmod(int(seconds), 60)
+    return f"{minutes}:{seconds:02d}"
+```
+
+#### 音楽システム拡張例
+
+##### 新しい音楽ソースの追加
+```python
+# music/spotify_extractor.py（拡張例）
+class SpotifyExtractor:
+    """Spotify音楽抽出（将来の拡張例）"""
+
+    async def search_track(self, query: str) -> TrackInfo:
+        # Spotify Web API統合
+        search_results = await self._spotify_search(query)
+
+        return TrackInfo(
+            title=search_results['name'],
+            artist=search_results['artists'][0]['name'],
+            url=search_results['external_urls']['spotify'],
+            duration=search_results['duration_ms'] // 1000,
+            thumbnail_url=search_results['album']['images'][0]['url'],
+            source=MusicSource.SPOTIFY
+        )
+
+# database/models.py に追加
+class MusicSource(str, Enum):
+    YOUTUBE = "youtube"        # ✅ 実装済み
+    SPOTIFY = "spotify"        # 将来の拡張
+    SOUNDCLOUD = "soundcloud"  # 将来の拡張
+```
+
+##### プレイリスト機能の追加
+```python
+# database/models.py に新しいモデル追加
+class Playlist(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int
+    name: str
+    created_by: int
+    tracks: str  # JSON array of track IDs
+    created_at: datetime = Field(default_factory=datetime.now)
+
+# cogs/music.py にプレイリストコマンド追加
+@app_commands.command(name="playlist", description="プレイリストを管理します")
+async def playlist(self, interaction: discord.Interaction, action: str, name: str = None):
+    if action == "create":
+        await self._create_playlist(interaction, name)
+    elif action == "load":
+        await self._load_playlist(interaction, name)
+```
+
+#### 音楽システムの最適化ポイント
+
+##### 1. 非ブロッキング処理
+```python
+# ❌ ブロッキング（悪い例）
+def bad_search(self, query):
+    result = requests.get(f"https://youtube.com/search?q={query}")  # ブロック
+    return result
+
+# ✅ ノンブロッキング（実装済み）
+async def search_track(self, query: str) -> TrackInfo:
+    loop = asyncio.get_event_loop()
+    # CPU集約的処理を別スレッドで実行
+    return await loop.run_in_executor(None, self._extract_info, query)
+```
+
+##### 2. エラーハンドリング
+```python
+# 音楽システムの強固なエラーハンドリング例
+async def play_track(self, track: Track):
+    try:
+        audio_url = await self.extractor.get_audio_source(track.url)
+        if not audio_url:
+            raise Exception("Audio source not found")
+
+        # 音声再生開始
+        source = discord.FFmpegPCMAudio(audio_url, ...)
+        self.voice_client.play(source, after=self._track_finished)
+
+    except Exception as e:
+        self.logger.error(f"Play error: {e}")
+        await self.music_service.play_next(self.guild_id)  # 自動で次へ
+```
+
+##### 3. リソース管理
+```python
+# 適切なリソース管理（実装済み）
+async def disconnect_voice(self, guild_id: int):
+    """ボイスチャンネル切断"""
+    player = self.players.get(guild_id)
+    if player:
+        await player.voice_client.disconnect()  # 接続切断
+        del self.players[guild_id]              # メモリ解放
+
+    await self.database.delete_session(guild_id)  # DB清理
+```
+
+### 音楽システム開発の教訓
+
+1. **UI統合**: 複雑な機能も1つのEmbedに集約することで使いやすさを確保
+2. **共通関数活用**: プログレスバー等の汎用機能は共通モジュールに配置
+3. **非同期処理**: yt-dlpなどの重い処理は`asyncio.to_thread`で非ブロッキング化
+4. **エラー処理**: 音楽再生は外部依存が多いため、強固なエラーハンドリングが必要
+5. **リソース管理**: ボイス接続・プレイヤーオブジェクトの適切な管理
+
+この音楽システム実装により、Kyriosはエンターテイメント性と技術的洗練性を両立したDiscordボットとなっています。
+
+---
+
 この機能開発ガイドにより、一貫性のある高品質な機能を効率的に開発できます。

@@ -41,16 +41,21 @@ Kyrios/
 │   ├── ping.py             # システム情報・Pingコマンド
 │   ├── avatar.py           # アバター表示・解析システム
 │   ├── tickets.py          # チケットシステム
-│   └── logging.py          # ログシステム
+│   ├── logging.py          # ログシステム
+│   └── music.py            # 音楽システム（インタラクティブプレイヤー）
 ├── events/
 │   ├── __init__.py
 │   └── handlers.py         # カスタムイベントハンドラー
 ├── common/                 # 共通ユーティリティ
 │   ├── __init__.py
-│   ├── embed_builder.py    # Embed作成パターン
-│   ├── ui_constants.py     # 色・絵文字定数管理
-│   ├── user_formatter.py   # ユーザー情報フォーマット
+│   ├── embed_builder.py    # Embed作成パターン（音楽プレイヤー含む）
+│   ├── ui_constants.py     # 色・絵文字定数管理（音楽UI含む）
+│   ├── user_formatter.py   # ユーザー情報フォーマット（プログレスバー含む）
 │   └── image_analyzer.py   # 画像解析・メタデータ抽出
+├── music/                  # 音楽システムコア
+│   ├── __init__.py
+│   ├── music_service.py    # MusicService・MusicPlayer クラス
+│   └── youtube_extractor.py # YouTube音楽抽出（yt-dlp）
 └── docs/                   # 包括的ドキュメント
     ├── ARCHITECTURE.md
     ├── API_REFERENCE.md
@@ -181,6 +186,12 @@ Discordイベント → EventListener → Database操作 → LogEmbed生成 → 
 - **SQLAlchemy[asyncio]**: 非同期データベース抽象化
 - **aiosqlite**: 非同期SQLiteドライバー（真の非ブロッキングI/O）
 
+### 音楽・メディア処理
+- **yt-dlp**: YouTube音楽抽出（高品質・高速）
+- **FFmpeg**: 音声処理・形式変換
+- **PyNaCl**: Discord音声通信暗号化
+- **aiohttp**: 非同期HTTP通信（サムネイル取得等）
+
 ### 依存関係管理
 - **dependency-injector**: DI コンテナ
 - **Pydantic**: 設定バリデーション
@@ -275,13 +286,35 @@ file_size = UserFormatter.format_file_size(size_bytes)
 2. **新しいModel**: データベーススキーマ拡張
 3. **新しいPattern**: デザインパターンの追加実装
 4. **新しいObserver**: イベント処理の拡張
+5. **音楽拡張**: 新しい音楽ソースの統合
 
 ### プラグインアーキテクチャ
 ```python
+# 既存の登録済みCog
+factory.register_cog("tickets", TicketsCog)
+factory.register_cog("logging", LoggingCog)
+factory.register_cog("avatar", AvatarCog)
+factory.register_cog("music", MusicCog)        # ✅ 実装完了
+
 # 将来的な拡張
 factory.register_cog("auto_mod", AutoModerationCog)
-~~factory.register_cog("music", MusicCog)~~
-~~factory.register_cog("games", GamesCog)~~
+factory.register_cog("games", GamesCog)
+factory.register_cog("economy", EconomyCog)
+```
+
+### 音楽システム設計例
+```python
+# 新しい音楽ソースの追加
+class SpotifyExtractor(MusicExtractor):
+    async def search_track(self, query: str) -> TrackInfo:
+        # Spotify API統合
+        pass
+
+# 音楽機能の拡張
+class PlaylistManager:
+    async def create_playlist(self, guild_id: int, name: str):
+        # プレイリスト機能
+        pass
 ```
 
 ## セキュリティ考慮事項
