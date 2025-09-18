@@ -1,8 +1,8 @@
-# Kyrios Bot - アーキテクチャドキュメント
+# Luna Bot - アーキテクチャドキュメント
 
 ## システム設計原則
 
-Kyriosは以下の設計原則に基づいて構築されています：
+Lunaは以下の設計原則に基づいて構築されています：
 
 ### 核心原則
 - **依存性注入 (DI)**: 疎結合とテスタビリティを実現
@@ -13,7 +13,7 @@ Kyriosは以下の設計原則に基づいて構築されています：
 ## プロジェクト構造
 
 ```
-Kyrios/
+Luna/
 ├── bot.py                  # メインBOTエントリーポイント
 ├── pyproject.toml          # Poetry設定ファイル
 ├── config.toml             # BOT設定ファイル
@@ -99,7 +99,7 @@ class TicketCreateCommand(Command):
 **目的**: Cogやコンポーネントの動的生成
 
 ```python
-from patterns.factory import KyriosCogFactory
+from patterns.factory import LunaCogFactory
 
 # Cog登録
 factory.register_cog("tickets", TicketsCog)
@@ -217,7 +217,7 @@ config.toml → Settings クラス → DIコンテナ → 各コンポーネン�
 ## 共通ユーティリティアーキテクチャ
 
 ### 共通関数の設計原則
-Kyriosでは`common/`ディレクトリに配置された共通ユーティリティが、全cogで統一されたUI/UXを提供します。
+Lunaでは`common/`ディレクトリに配置された共通ユーティリティが、全cogで統一されたUI/UXを提供します。
 
 #### 1. EmbedBuilder パターン
 ```python
@@ -345,4 +345,4 @@ class PlaylistManager:
 - **レイジーロード**: 必要時のみリソース読み込み
 - **ガベージコレクション**: 適切なオブジェクト解放
 
-この設計により、Kyriosは拡張性・保守性・パフォーマンスを兼ね備えた堅牢なシステムとなっています。
+この設計により、Lunaは拡張性・保守性・パフォーマンスを兼ね備えた堅牢なシステムとなっています。

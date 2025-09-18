@@ -1,8 +1,8 @@
-# Kyrios Bot - API リファレンス
+# Luna Bot - API リファレンス
 
 ## コマンド一覧
 
-Kyriosボットで利用可能なすべてのコマンドとその使用方法を説明します。
+Lunaボットで利用可能なすべてのコマンドとその使用方法を説明します。
 
 ## 🎵 音楽コマンド
 
@@ -57,7 +57,7 @@ Kyriosボットで利用可能なすべてのコマンドとその使用方法�
 
 **出力例**:
 ```
-🎵 Kyrios Music Player
+🎵 Luna Music Player
 
 🎶 Never Gonna Give You Up
 👤 Rick Astley
@@ -385,7 +385,7 @@ URL: [表示](https://cdn.discordapp.com/...)
 
 ### カスタムイベント
 
-Kyriosはイベントドリブンアーキテクチャを採用しており、以下のイベントが自動的に発火されます：
+Lunaはイベントドリブンアーキテクチャを採用しており、以下のイベントが自動的に発火されます：
 
 #### Bot関連イベント
 - `bot_ready` - ボット起動完了
@@ -437,7 +437,7 @@ Kyriosはイベントドリブンアーキテクチャを採用しており、�
 [bot]
 token = "YOUR_BOT_TOKEN"              # Discord Bot Token
 prefix = "!"                          # コマンドプレフィックス
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 ```
 
 #### [features] セクション
@@ -498,7 +498,7 @@ log_joins = true                      # メンバー参加をログ
 
 ## 共通ユーティリティ関数 (v0.1.6+)
 
-Kyrios v0.1.7では、包括的な音楽システムと全cogで使用可能な共通ユーティリティ関数により、一貫したUI/UXとコード品質が実現されています。
+Luna v0.1.7では、包括的な音楽システムと全cogで使用可能な共通ユーティリティ関数により、一貫したUI/UXとコード品質が実現されています。
 
 ### UserFormatter クラス
 

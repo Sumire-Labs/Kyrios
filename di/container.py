@@ -4,7 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from config.settings import Settings
 from database.manager import DatabaseManager
 from patterns.observer import EventBus, LoggingObserver, MetricsObserver
-from patterns.factory import KyriosCogFactory, ComponentFactory
+from patterns.factory import LunaCogFactory, ComponentFactory
 
 
 def _setup_event_bus(event_bus: EventBus, logging_observer: LoggingObserver,
@@ -49,7 +49,7 @@ class Container(containers.DeclarativeContainer):
     metrics_observer = providers.Singleton(MetricsObserver)
 
     # ファクトリープロバイダー
-    cog_factory = providers.Singleton(KyriosCogFactory)
+    cog_factory = providers.Singleton(LunaCogFactory)
     component_factory = providers.Singleton(ComponentFactory)
 
     # 依存関係の設定

@@ -1,8 +1,8 @@
-# Kyrios Bot - デプロイメントガイド
+# Luna Bot - デプロイメントガイド
 
 ## 本番環境への展開
 
-Kyriosボットを本番環境にデプロイする手順を説明します。
+Lunaボットを本番環境にデプロイする手順を説明します。
 
 ## 前提条件
 
@@ -72,7 +72,7 @@ sudo nano /etc/systemd/system/kyrios-bot.service
 サービスファイル内容：
 ```ini
 [Unit]
-Description=Kyrios Discord Bot
+Description=Luna Discord Bot
 After=network.target
 
 [Service]

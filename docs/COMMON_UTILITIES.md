@@ -1,6 +1,6 @@
 # Common Utilities - 共通ユーティリティガイド
 
-このドキュメントでは、Kyriosの`common/`ディレクトリに配置された共通ユーティリティの使用方法を説明します。
+このドキュメントでは、Lunaの`common/`ディレクトリに配置された共通ユーティリティの使用方法を説明します。
 
 ## 📋 目次
 
@@ -76,7 +76,7 @@ EmbedBuilder.add_ticket_info_fields(
 
 ```python
 # ユーザー情報付きフッター
-EmbedBuilder.set_footer_with_user(embed, interaction.user, "Kyrios System")
+EmbedBuilder.set_footer_with_user(embed, interaction.user, "Luna System")
 
 # ページネーション対応Embed
 items = ["項目1", "項目2", "項目3", "..."]

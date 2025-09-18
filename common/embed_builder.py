@@ -228,7 +228,7 @@ class EmbedBuilder:
             color = UIColors.MUSIC_PLAYING
 
         embed = discord.Embed(
-            title=f"🎵 Kyrios Music Player",
+            title=f"🎵 Luna Music Player",
             color=color,
             timestamp=datetime.now()
         )
