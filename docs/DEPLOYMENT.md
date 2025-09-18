@@ -40,8 +40,8 @@ source ~/.bashrc
 
 ```bash
 # プロジェクトクローン
-git clone https://github.com/your-username/kyrios-bot.git
-cd kyrios-bot
+git clone https://github.com/your-username/luna-bot.git
+cd luna-bot
 
 # 依存関係インストール
 poetry install --only=main
@@ -66,7 +66,7 @@ nano config.toml
 
 ```bash
 # サービスファイル作成
-sudo nano /etc/systemd/system/kyrios-bot.service
+sudo nano /etc/systemd/system/luna-bot.service
 ```
 
 サービスファイル内容：
@@ -78,7 +78,7 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/kyrios-bot
+WorkingDirectory=/home/ubuntu/luna-bot
 ExecStart=/home/ubuntu/.local/bin/poetry run python bot.py
 Restart=always
 RestartSec=10
@@ -93,11 +93,11 @@ WantedBy=multi-user.target
 ```bash
 # サービス有効化・開始
 sudo systemctl daemon-reload
-sudo systemctl enable kyrios-bot.service
-sudo systemctl start kyrios-bot.service
+sudo systemctl enable luna-bot.service
+sudo systemctl start luna-bot.service
 
 # ステータス確認
-sudo systemctl status kyrios-bot.service
+sudo systemctl status luna-bot.service
 ```
 
 ## 更新手順
@@ -105,7 +105,7 @@ sudo systemctl status kyrios-bot.service
 ### アプリケーション更新
 
 ```bash
-cd /path/to/kyrios-bot
+cd /path/to/luna-bot
 
 # 最新コードを取得
 git pull origin main
@@ -114,7 +114,7 @@ git pull origin main
 poetry install --only=main
 
 # サービス再起動
-sudo systemctl restart kyrios-bot.service
+sudo systemctl restart luna-bot.service
 ```
 
 ### データベースバックアップ
@@ -125,19 +125,19 @@ cat > backup.sh << 'EOF'
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/home/ubuntu/backups"
-DB_FILE="/path/to/kyrios.db"
+DB_FILE="/path/to/luna.db"
 
 mkdir -p $BACKUP_DIR
-cp $DB_FILE $BACKUP_DIR/kyrios_$DATE.db
+cp $DB_FILE $BACKUP_DIR/luna_$DATE.db
 
 # 30日以上古いバックアップを削除
-find $BACKUP_DIR -name "kyrios_*.db" -mtime +30 -delete
+find $BACKUP_DIR -name "luna_*.db" -mtime +30 -delete
 EOF
 
 chmod +x backup.sh
 
 # Cronでバックアップ自動化（毎日3時実行）
-echo "0 3 * * * /home/ubuntu/kyrios-bot/backup.sh" | crontab -
+echo "0 3 * * * /home/ubuntu/luna-bot/backup.sh" | crontab -
 ```
 
 ## 監視・ログ管理
@@ -146,17 +146,17 @@ echo "0 3 * * * /home/ubuntu/kyrios-bot/backup.sh" | crontab -
 
 ```bash
 # リアルタイムログ確認
-sudo journalctl -u kyrios-bot.service -f
+sudo journalctl -u luna-bot.service -f
 
 # ログファイル確認
-tail -f data/logs/kyrios.log
+tail -f luna.log
 ```
 
 ### パフォーマンス監視
 
 ```bash
 # CPU・メモリ使用量確認
-sudo systemctl status kyrios-bot.service
+sudo systemctl status luna-bot.service
 
 # 詳細なリソース使用量
 htop
@@ -181,12 +181,12 @@ sudo ufw allow 80,443/tcp
 
 ```bash
 # ボットユーザー作成（推奨）
-sudo useradd -m -s /bin/bash kyrios-bot
+sudo useradd -m -s /bin/bash luna-bot
 
 # ディレクトリ権限設定
-sudo chown -R kyrios-bot:kyrios-bot /path/to/kyrios-bot
-sudo chmod -R 755 /path/to/kyrios-bot
-sudo chmod 600 /path/to/kyrios-bot/config.toml
+sudo chown -R luna-bot:luna-bot /path/to/luna-bot
+sudo chmod -R 755 /path/to/luna-bot
+sudo chmod 600 /path/to/luna-bot/config.toml
 ```
 
 ## トラブルシューティング
@@ -209,10 +209,10 @@ sudo chmod 600 /path/to/kyrios-bot/config.toml
 
 ```bash
 # エラーログのみ表示
-sudo journalctl -u kyrios-bot.service --since "1 hour ago" | grep ERROR
+sudo journalctl -u luna-bot.service --since "1 hour ago" | grep ERROR
 
 # 起動失敗の原因確認
-sudo journalctl -u kyrios-bot.service --since "1 hour ago" | grep -A 5 -B 5 "Failed"
+sudo journalctl -u luna-bot.service --since "1 hour ago" | grep -A 5 -B 5 "Failed"
 ```
 
 ## Docker デプロイメント（オプション）
@@ -241,7 +241,7 @@ CMD ["python", "bot.py"]
 version: '3.13'
 
 services:
-  kyrios-bot:
+  luna-bot:
     build: .
     restart: unless-stopped
     volumes:

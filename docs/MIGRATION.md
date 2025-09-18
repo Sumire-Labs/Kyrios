@@ -50,7 +50,7 @@
 #### データベースバックアップ（推奨）
 ```bash
 # データベースのバックアップ作成
-cp data/databases/kyrios.db data/databases/kyrios_v015_backup.db
+cp luna.db luna_v015_backup.db
 ```
 
 #### 設定ファイル確認
@@ -241,7 +241,7 @@ python bot.py
 1. v0.1.5のソースコードに戻す
 2. データベースバックアップを復元（必要に応じて）
 ```bash
-cp data/databases/kyrios_v015_backup.db data/databases/kyrios.db
+cp luna_v015_backup.db luna.db
 ```
 3. ボットを再起動
 

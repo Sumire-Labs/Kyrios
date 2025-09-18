@@ -77,7 +77,7 @@ class LunaBot(commands.Bot):
             log_level = self.settings.logging_level
         except AttributeError:
             # フォールバック設定
-            log_file = "kyrios.log"
+            log_file = "luna.log"
             log_level = "INFO"
             print("Warning: Using fallback logging configuration")
 

@@ -30,6 +30,9 @@ Lunaボットの設定は `config.toml` ファイルで管理されています�
 
 [logger]
 # ロガー詳細設定
+
+[spotify]
+# Spotify API統合設定 (v0.1.10+)
 ```
 
 ---
@@ -61,7 +64,7 @@ description = "Luna - Advanced Discord Administration Bot"
 - **型**: String
 - **デフォルト**: `"!"`
 - **説明**: 従来のコマンドプレフィックス
-- **例**: `!`, `?`, `>>`, `kyrios!`
+- **例**: `!`, `?`, `>>`, `luna!`
 
 #### `description`
 - **型**: String
@@ -162,7 +165,7 @@ max_history_size = 1000
 
 ```toml
 [database]
-path = "data/databases/kyrios.db"
+path = "luna.db"
 backup_interval = 3600
 ```
 
@@ -170,7 +173,7 @@ backup_interval = 3600
 
 #### `path`
 - **型**: String
-- **デフォルト**: `"data/databases/kyrios.db"`
+- **デフォルト**: `"luna.db"`
 - **説明**: SQLiteデータベースファイルパス
 - **注意**:
   - ディレクトリが存在しない場合、自動作成されます
@@ -194,7 +197,7 @@ backup_interval = 3600
 ```toml
 [logging]
 level = "INFO"
-file = "data/logs/kyrios.log"
+file = "luna.log"
 max_size = 10485760
 ```
 
@@ -217,7 +220,7 @@ max_size = 10485760
 
 #### `file`
 - **型**: String
-- **デフォルト**: `"data/logs/kyrios.log"`
+- **デフォルト**: `"luna.log"`
 - **説明**: ログファイル出力パス
 - **注意**: ディレクトリが存在しない場合、自動作成されます
 
@@ -365,12 +368,12 @@ prefix = "dev!"
 description = "Luna - Development Build"
 
 [database]
-path = "data/dev/kyrios_dev.db"
+path = "luna_dev.db"
 backup_interval = 7200  # 2時間
 
 [logging]
 level = "DEBUG"
-file = "data/logs/kyrios_dev.log"
+file = "luna_dev.log"
 max_size = 5242880  # 5MB
 
 [features]
@@ -397,12 +400,12 @@ prefix = "!"
 description = "Luna - Advanced Discord Administration Bot"
 
 [database]
-path = "data/production/kyrios.db"
+path = "luna.db"
 backup_interval = 1800  # 30分
 
 [logging]
 level = "WARNING"  # 警告以上のみ
-file = "data/logs/kyrios.log"
+file = "luna.log"
 max_size = 52428800  # 50MB
 
 [features]
@@ -442,7 +445,7 @@ chmod 755 data/databases/
 
 1. **環境変数使用（推奨）**:
    ```bash
-   export KYRIOS_BOT_TOKEN="your_token_here"
+   export LUNA_BOT_TOKEN="your_token_here"
    ```
 
 2. **設定ファイル分離**:
@@ -515,13 +518,65 @@ poetry run python -c "from config.settings import Settings; Settings()"
 
 ---
 
+## [spotify] セクション (v0.1.10+)
+
+Spotify API統合の設定を定義します。
+
+```toml
+[spotify]
+client_id = "your_spotify_client_id"
+client_secret = "your_spotify_client_secret"
+```
+
+### パラメーター詳細
+
+#### `client_id` (必須・Spotify機能用)
+- **型**: String
+- **デフォルト**: `"your_spotify_client_id"`
+- **説明**: Spotify Web API Client ID
+- **取得方法**:
+  1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
+  2. アプリケーション作成
+  3. Client IDをコピー
+
+#### `client_secret` (必須・Spotify機能用)
+- **型**: String
+- **デフォルト**: `"your_spotify_client_secret"`
+- **説明**: Spotify Web API Client Secret
+- **取得方法**: Developer Dashboardの同じアプリケーションページから取得
+
+**⚠️ 重要**: Client SecretはTokenと同様に絶対に公開しないでください
+
+### Spotify機能の有効化
+
+Spotify機能を使用するには以下の条件が必要です：
+1. `client_id`が設定されている
+2. `client_secret`が設定されている
+3. 値がデフォルト値（"your_spotify_client_id"）以外である
+
+正しく設定されると以下の機能が利用可能になります：
+- Spotify URL対応（トラック・プレイリスト・アルバム）
+- Spotify→YouTube自動変換
+- プレイリスト一括追加
+- Spotify メタデータ保存
+
+### 設定例
+
+```toml
+[spotify]
+client_id = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+client_secret = "z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0"
+```
+
+---
+
 ## 高度な設定
 
 ### 複数環境管理
 
 ```bash
 # 環境変数で設定ファイル切り替え
-export KYRIOS_CONFIG_PATH="config.production.toml"
+export LUNA_CONFIG_PATH="config.production.toml"
 poetry run python bot.py
 ```
 

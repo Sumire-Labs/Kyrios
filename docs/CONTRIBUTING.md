@@ -42,8 +42,8 @@ Lunaプロジェクトへの貢献を歓迎します！バグ報告、機能提�
 
 ```bash
 # 1. リポジトリのフォーク・クローン
-git clone https://github.com/your-username/kyrios-bot.git
-cd kyrios-bot
+git clone https://github.com/your-username/luna-bot.git
+cd luna-bot
 
 # 2. 開発ブランチ作成
 git checkout -b feature/your-feature-name
@@ -191,7 +191,7 @@ async def process_tickets(
 ### プロジェクト構造の理解
 
 ```
-kyrios/
+luna/
 ├── bot.py              # メインエントリーポイント
 ├── config/             # 設定管理
 ├── database/           # データモデル・DB操作

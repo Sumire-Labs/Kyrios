@@ -17,7 +17,7 @@ class TrackInfo:
 
 
 class YouTubeExtractor:
-    """YouTube音楽抽出器 - Kyriosパターン準拠"""
+    """YouTube音楽抽出器 - Lunaパターン準拠"""
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

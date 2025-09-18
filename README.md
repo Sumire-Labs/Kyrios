@@ -28,7 +28,9 @@
 ### **🎵 高機能音楽システム**
 - **インタラクティブUI**: 統合音楽プレイヤー（7ボタンコントローラー）
 - **YouTube統合**: yt-dlp による高品質音楽抽出
+- **Spotify統合**: Spotify API連携・プレイリスト対応
 - **キュー管理**: 無制限楽曲キュー・リアルタイム更新
+- **プレイリスト対応**: YouTube/Spotifyプレイリスト一括追加
 - **ループモード**: 楽曲・キューリピート対応
 - **プログレスバー**: リアルタイム再生進捗表示
 
@@ -55,8 +57,8 @@
 
 1. **リポジトリをクローン**
 ```bash
-git clone https://github.com/your-username/kyrios-bot.git
-cd kyrios-bot
+git clone https://github.com/your-username/luna-bot.git
+cd luna-bot
 ```
 
 2. **依存関係をインストール**
@@ -86,7 +88,7 @@ Luna/
 ├── config.toml.example # 設定ファイルテンプレート
 ├── pyproject.toml      # Poetry設定ファイル
 ├── test_bot.py         # BOTテスト・開発用スクリプト
-├── kyrios/             # Pythonパッケージ
+├── luna/               # Pythonパッケージ
 │   └── __init__.py
 ├── config/
 │   ├── __init__.py
@@ -121,7 +123,9 @@ Luna/
 ├── music/              # 音楽システムコア
 │   ├── __init__.py
 │   ├── music_service.py    # 音楽サービス・プレイヤー管理
-│   └── youtube_extractor.py # YouTube音楽抽出
+│   ├── youtube_extractor.py # YouTube音楽抽出
+│   ├── spotify_extractor.py # Spotify API統合・楽曲変換
+│   └── url_detector.py     # URL自動判定・ルーティング
 └── docs/               # 包括的ドキュメント (12ファイル)
     ├── ARCHITECTURE.md      # システム設計・デザインパターン
     ├── API_REFERENCE.md     # コマンド・共通関数リファレンス
@@ -168,16 +172,16 @@ description = "Luna - Advanced Discord Administration Bot"
 # ボットステータス設定 (v0.1.5+)
 [status]
 type = "game"                 # game, watching, listening, streaming
-message = "Luna v0.1.7"
+message = "v0.1.10"
 streaming_url = ""            # streaming時のみ必要
 
 [database]
-path = "data/databases/kyrios.db"
+path = "luna.db"
 backup_interval = 3600
 
 [logging]
 level = "INFO"
-file = "logs/kyrios.log"
+file = "luna.log"
 max_size = 10485760
 
 # EventBusメモリ管理 (v0.1.2+)
@@ -189,9 +193,24 @@ tickets = true
 logger = true
 music = true
 auto_mod = false
+
+# Spotify統合設定 (v0.1.10+)
+[spotify]
+client_id = "your_spotify_client_id"
+client_secret = "your_spotify_client_secret"
 ```
 
 詳細な設定については [CONFIGURATION.md](docs/CONFIGURATION.md) を参照してください。
+
+### Spotify統合設定
+
+Spotify機能を使用するには、[Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)でアプリを作成し、Client IDとClient Secretを設定してください。
+
+```toml
+[spotify]
+client_id = "your_actual_spotify_client_id"
+client_secret = "your_actual_spotify_client_secret"
+```
 
 ## データベース
 
@@ -199,7 +218,7 @@ auto_mod = false
 - **tickets** - チケット管理（カテゴリ・優先度・状態）
 - **logs** - 包括的なサーバーログ
 - **guild_settings** - サーバー別詳細設定
-- **tracks** - 音楽楽曲メタデータ（タイトル・アーティスト・URL）
+- **tracks** - 音楽楽曲メタデータ（タイトル・アーティスト・URL・Spotify情報）
 - **queues** - 音楽キュー管理（位置・追加者）
 - **music_sessions** - 音楽セッション状態（チャンネル・ループモード）
 - **avatar_history** - アバター変更履歴・統計

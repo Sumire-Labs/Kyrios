@@ -162,7 +162,7 @@ class MusicPlayer:
 
 
 class MusicService:
-    """音楽システムメインサービス - Kyriosパターン準拠"""
+    """音楽システムメインサービス - Lunaパターン準拠"""
 
     def __init__(self, database_manager, event_bus, youtube_extractor: YouTubeExtractor):
         self.database = database_manager

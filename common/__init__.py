@@ -1,4 +1,4 @@
-# Common utilities for Kyrios bot
+# Common utilities for Luna bot
 
 from .embed_builder import EmbedBuilder
 from .ui_constants import (

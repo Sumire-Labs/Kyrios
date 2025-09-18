@@ -230,7 +230,7 @@ class LoopMode(str, Enum):
 from database.manager import DatabaseManager
 
 # 初期化（非同期）
-db_manager = DatabaseManager("kyrios.db")
+db_manager = DatabaseManager("luna.db")
 await db_manager.initialize()
 
 # 非同期トランザクション（推奨）
@@ -675,7 +675,7 @@ from pathlib import Path
 
 async def backup_database(self) -> Path:
     """データベースのバックアップ作成"""
-    backup_path = Path(f"backup_kyrios_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+    backup_path = Path(f"backup_luna_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
     shutil.copy2(self.database_path, backup_path)
     return backup_path
 ```

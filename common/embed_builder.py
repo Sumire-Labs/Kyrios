@@ -173,7 +173,7 @@ class EmbedBuilder:
         embed: discord.Embed,
         user: Union[discord.User, discord.Member],
         additional_text: str = "",
-        bot_name: str = "Kyrios"
+        bot_name: str = "Luna"
     ) -> discord.Embed:
         """ユーザー情報付きのフッターを設定"""
         footer_text = f"リクエスト: {user.display_name}"
@@ -284,7 +284,7 @@ class EmbedBuilder:
 
         # フッター
         embed.set_footer(
-            text=f"リクエスト: {track.get('requested_by_name', 'Unknown')} | Kyrios Music",
+            text=f"リクエスト: {track.get('requested_by_name', 'Unknown')} | Luna Music",
             icon_url=track.get('requested_by_avatar')
         )
 

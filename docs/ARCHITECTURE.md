@@ -19,7 +19,7 @@ Luna/
 ├── config.toml             # BOT設定ファイル
 ├── config.toml.example     # 設定ファイルテンプレート
 ├── test_bot.py             # BOTテスト・開発用スクリプト
-├── kyrios/                 # Pythonパッケージ
+├── luna/                   # Pythonパッケージ
 │   └── __init__.py
 ├── config/
 │   ├── __init__.py
@@ -55,7 +55,9 @@ Luna/
 ├── music/                  # 音楽システムコア
 │   ├── __init__.py
 │   ├── music_service.py    # MusicService・MusicPlayer クラス
-│   └── youtube_extractor.py # YouTube音楽抽出（yt-dlp）
+│   ├── youtube_extractor.py # YouTube音楽抽出（yt-dlp）
+│   ├── spotify_extractor.py # Spotify API統合・楽曲変換
+│   └── url_detector.py     # URL自動判定・ルーティング
 └── docs/                   # 包括的ドキュメント
     ├── ARCHITECTURE.md
     ├── API_REFERENCE.md
@@ -188,6 +190,7 @@ Discordイベント → EventListener → Database操作 → LogEmbed生成 → 
 
 ### 音楽・メディア処理
 - **yt-dlp**: YouTube音楽抽出（高品質・高速）
+- **spotipy**: Spotify Web API統合（v0.1.10+）
 - **FFmpeg**: 音声処理・形式変換
 - **PyNaCl**: Discord音声通信暗号化
 - **aiohttp**: 非同期HTTP通信（サムネイル取得等）
@@ -294,7 +297,7 @@ file_size = UserFormatter.format_file_size(size_bytes)
 factory.register_cog("tickets", TicketsCog)
 factory.register_cog("logging", LoggingCog)
 factory.register_cog("avatar", AvatarCog)
-factory.register_cog("music", MusicCog)        # ✅ 実装完了
+factory.register_cog("music", MusicCog)        # ✅ 実装完了（Spotify統合済み）
 
 # 将来的な拡張
 factory.register_cog("auto_mod", AutoModerationCog)
@@ -302,19 +305,45 @@ factory.register_cog("games", GamesCog)
 factory.register_cog("economy", EconomyCog)
 ```
 
-### 音楽システム設計例
+### 音楽システム設計実装済み
 ```python
-# 新しい音楽ソースの追加
-class SpotifyExtractor(MusicExtractor):
-    async def search_track(self, query: str) -> TrackInfo:
-        # Spotify API統合
-        pass
+# Spotify統合実装（v0.1.10）
+class SpotifyExtractor:
+    async def spotify_to_youtube(self, spotify_track: Dict[str, Any]) -> Optional[TrackInfo]:
+        """SpotifyトラックをYouTube検索で変換"""
+        artist = spotify_track['artists'][0]['name']
+        title = spotify_track['name']
+        search_query = f"{artist} {title}"
+        youtube_tracks = await self.youtube_extractor.search_tracks(search_query, limit=1)
+        return youtube_tracks[0] if youtube_tracks else None
 
-# 音楽機能の拡張
-class PlaylistManager:
-    async def create_playlist(self, guild_id: int, name: str):
-        # プレイリスト機能
-        pass
+# URL判定・ルーティング実装
+class URLDetector:
+    @staticmethod
+    def detect_url_type(url: str) -> URLInfo:
+        """URL種別を自動判定（YouTube/Spotify/検索クエリ）"""
+        if 'spotify.com' in url:
+            return URLDetector._detect_spotify_type(url)
+        elif 'youtube.com' in url or 'youtu.be' in url:
+            return URLDetector._detect_youtube_type(url)
+        else:
+            return URLInfo(source="search", url=url)
+```
+
+### プレイリスト機能実装済み
+```python
+# YouTube/Spotifyプレイリスト一括追加（v0.1.10）
+async def _handle_youtube_playlist(self, interaction, message, url_info):
+    """YouTubeプレイリストを一括でキューに追加"""
+    tracks = await self.youtube_extractor.get_playlist_tracks(url_info.url)
+    for track in tracks:
+        await self.music_service.add_to_queue(interaction.guild.id, track)
+
+async def _handle_spotify_playlist(self, interaction, message, url_info):
+    """Spotifyプレイリストを一括でキューに追加"""
+    tracks = await self.spotify_extractor.get_playlist_tracks(url_info.id)
+    for track_info in tracks:
+        await self.music_service.add_to_queue(interaction.guild.id, track_info)
 ```
 
 ## セキュリティ考慮事項

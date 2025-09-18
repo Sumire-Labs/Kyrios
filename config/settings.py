@@ -43,11 +43,11 @@ class Settings:
 
     @property
     def bot_description(self) -> str:
-        return self.config.get("bot", {}).get("description", "Kyrios - Advanced Discord Administration Bot")
+        return self.config.get("bot", {}).get("description", "Luna - Advanced Discord Administration Bot")
 
     @property
     def database_path(self) -> str:
-        return self.config.get("database", {}).get("path", "data/databases/kyrios.db")
+        return self.config.get("database", {}).get("path", "luna.db")
 
     @property
     def database_backup_interval(self) -> int:
@@ -59,7 +59,7 @@ class Settings:
 
     @property
     def logging_file(self) -> str:
-        return self.config.get("logging", {}).get("file", "data/logs/kyrios.log")
+        return self.config.get("logging", {}).get("file", "luna.log")
 
     @property
     def logging_max_size(self) -> int:

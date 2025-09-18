@@ -55,7 +55,7 @@ chown bot-user:bot-user config.toml
 ```yaml
 # docker-compose.yml
 services:
-  kyrios-bot:
+  luna-bot:
     environment:
       - DISCORD_BOT_TOKEN_FILE=/run/secrets/bot_token
     secrets:
@@ -124,11 +124,11 @@ async def admin_command(interaction):
 #### データベースセキュリティ
 ```bash
 # SQLiteファイルの権限設定
-chmod 600 data/databases/kyrios.db
-chown bot-user:bot-user data/databases/kyrios.db
+chmod 600 data/databases/luna.db
+chown bot-user:bot-user data/databases/luna.db
 
 # バックアップファイルの暗号化（推奨）
-gpg --symmetric --cipher-algo AES256 kyrios_backup.db
+gpg --symmetric --cipher-algo AES256 luna_backup.db
 ```
 
 ### 2. **データ保持ポリシー**
@@ -208,13 +208,13 @@ async def safe_image_analysis(image_url: str):
 #### セキュリティイベントの検出
 ```bash
 # 不審なアクティビティの監視
-grep -E "(CRITICAL|ERROR)" logs/kyrios.log | grep -E "(auth|permission|token)"
+grep -E "(CRITICAL|ERROR)" luna.log | grep -E "(auth|permission|token)"
 
 # 大量リクエストの検出
-grep "rate limit" logs/kyrios.log | tail -100
+grep "rate limit" luna.log | tail -100
 
 # 異常なコマンド使用パターン
-grep "command" logs/kyrios.log | awk '{print $3}' | sort | uniq -c | sort -nr
+grep "command" luna.log | awk '{print $3}' | sort | uniq -c | sort -nr
 ```
 
 #### 自動アラート設定
@@ -223,12 +223,12 @@ grep "command" logs/kyrios.log | awk '{print $3}' | sort | uniq -c | sort -nr
 # security_monitor.sh
 
 # 権限エラーの検出
-if grep -q "permission denied" logs/kyrios.log; then
+if grep -q "permission denied" luna.log; then
     echo "Permission violation detected" | mail security@example.com
 fi
 
 # 異常なAPIレイテンシ
-latency=$(grep "latency" logs/kyrios.log | tail -1 | grep -o '[0-9]*ms' | cut -d'm' -f1)
+latency=$(grep "latency" luna.log | tail -1 | grep -o '[0-9]*ms' | cut -d'm' -f1)
 if [ "$latency" -gt 1000 ]; then
     echo "High latency detected: ${latency}ms" | mail admin@example.com
 fi
@@ -301,29 +301,29 @@ async def on_message_delete(self, message):
 #### Token 流出時の対応
 ```bash
 # 1. ボット即座停止
-sudo systemctl stop kyrios-bot.service
+sudo systemctl stop luna-bot.service
 
 # 2. Discord Developer Portal でToken再生成
 # 3. 新しいTokenで config.toml 更新
 nano config.toml
 
 # 4. ログの確認
-grep -E "(login|auth|token)" logs/kyrios.log
+grep -E "(login|auth|token)" luna.log
 
 # 5. サービス再開
-sudo systemctl start kyrios-bot.service
+sudo systemctl start luna-bot.service
 ```
 
 #### データベース破損時の対応
 ```bash
 # 1. データベースの整合性チェック
-sqlite3 kyrios.db "PRAGMA integrity_check;"
+sqlite3 luna.db "PRAGMA integrity_check;"
 
 # 2. バックアップからの復旧
-cp data/backups/kyrios_latest.db data/databases/kyrios.db
+cp data/backups/luna_latest.db data/databases/luna.db
 
 # 3. データベース修復（軽微な破損時）
-sqlite3 kyrios.db "VACUUM; REINDEX;"
+sqlite3 luna.db "VACUUM; REINDEX;"
 ```
 
 ---
@@ -345,23 +345,23 @@ sudo ufw enable
 #### ユーザー権限
 ```bash
 # 専用ユーザーの作成
-sudo useradd -r -s /bin/false kyrios-bot
-sudo mkdir -p /opt/kyrios-bot
-sudo chown kyrios-bot:kyrios-bot /opt/kyrios-bot
+sudo useradd -r -s /bin/false luna-bot
+sudo mkdir -p /opt/luna-bot
+sudo chown luna-bot:luna-bot /opt/luna-bot
 ```
 
 #### systemd セキュリティ設定
 ```ini
-# /etc/systemd/system/kyrios-bot.service
+# /etc/systemd/system/luna-bot.service
 [Unit]
 Description=Luna Discord Bot
 After=network.target
 
 [Service]
 Type=simple
-User=kyrios-bot
-Group=kyrios-bot
-WorkingDirectory=/opt/kyrios-bot
+User=luna-bot
+Group=luna-bot
+WorkingDirectory=/opt/luna-bot
 ExecStart=/usr/bin/poetry run python bot.py
 
 # セキュリティ設定
@@ -369,7 +369,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=/opt/kyrios-bot/data
+ReadWritePaths=/opt/luna-bot/data
 RestrictSUIDSGID=true
 
 [Install]
@@ -466,7 +466,7 @@ poetry show --outdated
 #### セキュリティパッチの適用
 ```bash
 # 1. バックアップ作成
-cp -r /opt/kyrios-bot /opt/kyrios-bot.backup
+cp -r /opt/luna-bot /opt/luna-bot.backup
 
 # 2. アップデート実行
 poetry update
@@ -475,7 +475,7 @@ poetry update
 poetry run python -m pytest
 
 # 4. 本番適用
-sudo systemctl restart kyrios-bot.service
+sudo systemctl restart luna-bot.service
 ```
 
 ---

@@ -276,7 +276,7 @@ class AvatarCog(commands.Cog):
                 embed.set_thumbnail(url=banner_url)
 
             embed.set_footer(
-                text=f"リクエスト: {interaction.user.display_name} | Kyrios Avatar System",
+                text=f"リクエスト: {interaction.user.display_name} | Luna Avatar System",
                 icon_url=interaction.user.display_avatar.url
             )
 

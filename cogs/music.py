@@ -17,7 +17,7 @@ from music.url_detector import URLDetector
 
 
 class QuickAddModal(discord.ui.Modal):
-    """楽曲追加用モーダル - Kyriosスタイル"""
+    """楽曲追加用モーダル - Lunaスタイル"""
 
     def __init__(self, bot, guild_id: int):
         super().__init__(title="🎵 楽曲をキューに追加")
@@ -102,7 +102,7 @@ class QuickAddModal(discord.ui.Modal):
 
 
 class MusicPlayerView(discord.ui.View):
-    """オールインワン音楽プレイヤー - Kyriosパターン準拠"""
+    """オールインワン音楽プレイヤー - Lunaパターン準拠"""
 
     # クラス変数でアクティブなインスタンスを追跡
     _active_instances = set()
@@ -163,7 +163,7 @@ class MusicPlayerView(discord.ui.View):
             self.bot.logger.error(f"Add to queue button error: {e}")
             await interaction.response.send_message("❌ 楽曲追加モーダルの表示に失敗しました", ephemeral=True)
 
-    # 🔧 内部メソッド - Kyriosパターン準拠
+    # 🔧 内部メソッド - Lunaパターン準拠
     async def _handle_player_action(self, interaction: discord.Interaction, action: str):
         """プレイヤー操作統一ハンドラー"""
         await interaction.response.defer()
@@ -425,7 +425,7 @@ class MusicPlayerView(discord.ui.View):
 
 
 class MusicCog(commands.Cog):
-    """音楽システムCog - Kyriosパターン準拠"""
+    """音楽システムCog - Lunaパターン準拠"""
 
     def __init__(self, bot):
         self.bot = bot

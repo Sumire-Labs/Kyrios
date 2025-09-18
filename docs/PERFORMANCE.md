@@ -119,7 +119,7 @@ member = interaction.guild.get_member(user_id)  # キャッシュから取得
 #### ログベース監視
 ```bash
 # ログファイル監視
-tail -f logs/kyrios.log | grep -E "(ERROR|WARNING|CRITICAL)"
+tail -f luna.log | grep -E "(ERROR|WARNING|CRITICAL)"
 ```
 
 ### 2. **システム監視**
@@ -127,10 +127,10 @@ tail -f logs/kyrios.log | grep -E "(ERROR|WARNING|CRITICAL)"
 #### systemctl での監視
 ```bash
 # サービス状態確認
-sudo systemctl status kyrios-bot.service
+sudo systemctl status luna-bot.service
 
 # メモリ使用量確認
-sudo systemctl show kyrios-bot.service --property=MemoryCurrent
+sudo systemctl show luna-bot.service --property=MemoryCurrent
 ```
 
 #### リソース監視
@@ -229,7 +229,7 @@ Discord APIレイテンシ > 200ms
 2. **レート制限**
    ```python
    # ログで確認
-   grep "429" logs/kyrios.log
+   grep "429" luna.log
    ```
 
 3. **サーバー負荷**
@@ -264,7 +264,7 @@ tracemalloc.start()
 2. **定期再起動**
    ```bash
    # crontabで週1回再起動
-   0 3 * * 0 sudo systemctl restart kyrios-bot.service
+   0 3 * * 0 sudo systemctl restart luna-bot.service
    ```
 
 ### 3. **データベース最適化**
@@ -278,8 +278,8 @@ tracemalloc.start()
 1. **データベース最適化**
    ```bash
    # SQLite最適化
-   sqlite3 data/databases/kyrios.db "VACUUM;"
-   sqlite3 data/databases/kyrios.db "ANALYZE;"
+   sqlite3 luna.db "VACUUM;"
+   sqlite3 luna.db "ANALYZE;"
    ```
 
 2. **古いデータ削除**
@@ -436,7 +436,7 @@ for record in all_records:  # 大量データを一度にメモリに読み込�
 #!/bin/bash
 
 # データベース最適化
-sqlite3 kyrios.db "VACUUM; ANALYZE;"
+sqlite3 luna.db "VACUUM; ANALYZE;"
 
 # ログローテーション
 find logs/ -name "*.log" -mtime +30 -delete

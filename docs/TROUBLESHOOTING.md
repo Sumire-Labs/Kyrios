@@ -103,7 +103,7 @@ max_per_user = 3                 # 数値はそのまま
 
 #### 症状
 ```
-PermissionError: [Errno 13] Permission denied: 'data/logs/kyrios.log'
+PermissionError: [Errno 13] Permission denied: 'luna.log'
 ```
 
 #### 解決策
@@ -113,8 +113,8 @@ mkdir -p data/logs data/databases
 chmod 755 data data/logs data/databases
 
 # ログファイル権限設定
-touch data/logs/kyrios.log
-chmod 644 data/logs/kyrios.log
+touch luna.log
+chmod 644 luna.log
 
 # 設定ファイル権限（セキュリティ強化）
 chmod 600 config.toml
@@ -316,10 +316,10 @@ log_joins = true
 **3. ログファイル確認**
 ```bash
 # ログファイルの内容確認
-tail -f data/logs/kyrios.log
+tail -f luna.log
 
 # エラーメッセージの検索
-grep "ERROR" data/logs/kyrios.log
+grep "ERROR" luna.log
 ```
 
 ---
@@ -467,10 +467,10 @@ message = "Luna v0.1.6"
 **1. データベース最適化**
 ```bash
 # データベースサイズ確認
-du -h data/databases/kyrios.db
+du -h luna.db
 
 # 大きすぎる場合（100MB+）はバックアップして最適化
-sqlite3 data/databases/kyrios.db "VACUUM;"
+sqlite3 luna.db "VACUUM;"
 ```
 
 **2. ログ設定の最適化**
@@ -555,7 +555,7 @@ max_history_size = 500  # メモリ使用量削減
 **5. 定期再起動（最終手段）**
 ```bash
 # 週1回の自動再起動（crontab）
-0 3 * * 0 sudo systemctl restart kyrios-bot.service
+0 3 * * 0 sudo systemctl restart luna-bot.service
 ```
 
 ---
@@ -599,25 +599,25 @@ nslookup discord.com
 #### 基本的なログ確認
 ```bash
 # 最新100行表示
-tail -100 data/logs/kyrios.log
+tail -100 luna.log
 
 # エラーのみ表示
-grep "ERROR" data/logs/kyrios.log
+grep "ERROR" luna.log
 
 # 特定時間のログ表示
-grep "2024-01-15 10:" data/logs/kyrios.log
+grep "2024-01-15 10:" luna.log
 
 # リアルタイム監視
-tail -f data/logs/kyrios.log
+tail -f luna.log
 ```
 
 #### システムログの確認（systemd使用時）
 ```bash
 # サービスログ表示
-sudo journalctl -u kyrios-bot.service -f
+sudo journalctl -u luna-bot.service -f
 
 # エラーログのみ
-sudo journalctl -u kyrios-bot.service --since "1 hour ago" | grep ERROR
+sudo journalctl -u luna-bot.service --since "1 hour ago" | grep ERROR
 ```
 
 ### 🔍 デバッグモードの有効化

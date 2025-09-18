@@ -12,11 +12,26 @@ Lunaボットで利用可能なすべてのコマンドとその使用方法を�
 **説明**: 音楽を検索・再生します。インタラクティブな音楽プレイヤーUIを表示
 
 **パラメーター**:
-- `query` (必須): YouTubeURL または 検索キーワード
+- `query` (必須): YouTube URL / Spotify URL / プレイリストURL / 検索キーワード
 
 **使用方法**:
 ```
+# YouTube URL
 /play https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# YouTube プレイリスト (v0.1.10+)
+/play https://www.youtube.com/playlist?list=PLs4Gp5VU4Fv9rGksKf_XXs1aRV7HdqnyK
+
+# Spotify トラック (v0.1.10+)
+/play https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh
+
+# Spotify プレイリスト (v0.1.10+)
+/play https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd
+
+# Spotify アルバム (v0.1.10+)
+/play https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
+
+# 検索キーワード
 /play Never Gonna Give You Up
 /play オフィシャル髭男dism Pretender
 ```
@@ -25,6 +40,8 @@ Lunaボットで利用可能なすべてのコマンドとその使用方法を�
 
 ##### 🎵 音楽検索・再生
 - **YouTube統合**: yt-dlp による高品質音楽抽出
+- **Spotify統合**: Spotify API連携・YouTube変換再生 (v0.1.10+)
+- **プレイリスト対応**: YouTube/Spotifyプレイリスト一括追加 (v0.1.10+)
 - **自動音声接続**: ユーザーのボイスチャンネルに自動接続
 - **キュー管理**: 複数楽曲の自動キュー追加
 - **ループモード**: 楽曲・キューリピート対応
