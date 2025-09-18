@@ -5,6 +5,9 @@ from config.settings import Settings
 from database.manager import DatabaseManager
 from patterns.observer import EventBus, LoggingObserver, MetricsObserver
 from patterns.factory import LunaCogFactory, ComponentFactory
+from music.youtube_extractor import YouTubeExtractor
+from music.spotify_extractor import SpotifyExtractor
+from music.music_service import MusicService
 
 
 def _setup_event_bus(event_bus: EventBus, logging_observer: LoggingObserver,
@@ -58,6 +61,23 @@ class Container(containers.DeclarativeContainer):
         event_bus=event_bus,
         logging_observer=logging_observer,
         metrics_observer=metrics_observer
+    )
+
+    # 音楽システムプロバイダー
+    youtube_extractor = providers.Singleton(YouTubeExtractor)
+
+    spotify_extractor = providers.Singleton(
+        SpotifyExtractor,
+        client_id=config.provided.spotify_client_id,
+        client_secret=config.provided.spotify_client_secret
+    )
+
+    music_service = providers.Singleton(
+        MusicService,
+        database_manager=database_manager_raw,
+        event_bus=event_bus,
+        youtube_extractor=youtube_extractor,
+        spotify_extractor=spotify_extractor
     )
 
 

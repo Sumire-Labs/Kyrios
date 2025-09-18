@@ -7,6 +7,8 @@ from discord import VoiceClient
 
 from database.models import Track, Queue, MusicSession, MusicSource, LoopMode
 from .youtube_extractor import YouTubeExtractor, TrackInfo
+from .spotify_extractor import SpotifyExtractor
+from .url_detector import URLDetector, URLInfo
 
 
 class MusicPlayer:
@@ -164,10 +166,12 @@ class MusicPlayer:
 class MusicService:
     """音楽システムメインサービス - Lunaパターン準拠"""
 
-    def __init__(self, database_manager, event_bus, youtube_extractor: YouTubeExtractor):
+    def __init__(self, database_manager, event_bus, youtube_extractor: YouTubeExtractor, spotify_extractor: Optional[SpotifyExtractor] = None):
         self.database = database_manager
         self.event_bus = event_bus
         self.youtube_extractor = youtube_extractor
+        self.spotify_extractor = spotify_extractor
+        self.url_detector = URLDetector()
         self.logger = logging.getLogger(__name__)
 
         # アクティブプレイヤー管理
@@ -191,14 +195,17 @@ class MusicService:
         track_info = None
         music_source = MusicSource.YOUTUBE
 
-        # Spotify URL判定
-        if self.youtube_extractor.is_spotify_url(query):
+        # URL種別判定
+        url_info = self.url_detector.detect_url_type(query)
+
+        # Spotify URL処理
+        if url_info.source == "spotify" and self.spotify_extractor:
             self.logger.info(f"Spotify URL detected: {query}")
-            track_info = await self.youtube_extractor.extract_spotify_track(query)
+            track_info = await self._handle_spotify_url(url_info)
             music_source = MusicSource.SPOTIFY
 
-        # YouTube URL判定
-        elif self.youtube_extractor.is_url(query):
+        # YouTube URL処理
+        elif url_info.source == "youtube":
             self.logger.info(f"YouTube URL detected: {query}")
             track_info = await self.youtube_extractor.search_track(query)
             music_source = MusicSource.YOUTUBE
@@ -499,3 +506,35 @@ class MusicService:
         except Exception as e:
             self.logger.error(f"Skip error: {e}")
             return False
+
+    async def _handle_spotify_url(self, url_info: URLInfo) -> Optional[TrackInfo]:
+        """Spotify URL処理"""
+        if not self.spotify_extractor:
+            self.logger.warning("Spotify extractor not available")
+            return None
+
+        try:
+            if url_info.url_type == "track":
+                # 単一楽曲
+                spotify_track = await self.spotify_extractor.get_track(url_info.id)
+                if spotify_track:
+                    # Spotify楽曲情報をYouTube検索クエリに変換
+                    return await self.spotify_extractor.spotify_to_youtube(spotify_track)
+
+            elif url_info.url_type == "playlist":
+                # プレイリスト（最初の楽曲のみ返す）
+                tracks = await self.spotify_extractor.get_playlist_tracks(url_info.id, limit=1)
+                if tracks:
+                    return tracks[0]
+
+            elif url_info.url_type == "album":
+                # アルバム（最初の楽曲のみ返す）
+                tracks = await self.spotify_extractor.get_album_tracks(url_info.id, limit=1)
+                if tracks:
+                    return tracks[0]
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Spotify URL handling error: {e}")
+            return None

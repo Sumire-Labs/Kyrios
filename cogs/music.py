@@ -443,23 +443,32 @@ class MusicCog(commands.Cog):
         self.logger.info(f"MusicCog - Database type: {type(self.database)}")
         self.logger.info(f"MusicCog - EventBus type: {type(self.event_bus)}")
 
-        # 音楽システム初期化
-        self.youtube_extractor = YouTubeExtractor()
-        self.music_service = MusicService(self.database, self.event_bus, self.youtube_extractor)
+        # DIコンテナから音楽システムを取得
+        try:
+            self.youtube_extractor = container.youtube_extractor()
 
-        # Spotify統合の初期化
-        self.spotify_extractor = None
-        if self.config.spotify_enabled:
-            try:
-                self.spotify_extractor = SpotifyExtractor(
-                    client_id=self.config.spotify_client_id,
-                    client_secret=self.config.spotify_client_secret
-                )
-                self.logger.info("Spotify integration enabled")
-            except Exception as e:
-                self.logger.error(f"Failed to initialize Spotify: {e}")
-        else:
-            self.logger.info("Spotify integration disabled (credentials not configured)")
+            # Spotify統合の確認
+            if self.config.spotify_enabled:
+                self.spotify_extractor = container.spotify_extractor()
+                self.logger.info("Spotify integration enabled via DI")
+            else:
+                self.spotify_extractor = None
+                self.logger.info("Spotify integration disabled (credentials not configured)")
+
+            # MusicServiceを手動で作成（DIの循環依存を回避）
+            self.music_service = MusicService(
+                database_manager=self.database,
+                event_bus=self.event_bus,
+                youtube_extractor=self.youtube_extractor,
+                spotify_extractor=self.spotify_extractor
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize music system from DI: {e}")
+            # フォールバック処理
+            self.youtube_extractor = YouTubeExtractor()
+            self.music_service = MusicService(self.database, self.event_bus, self.youtube_extractor)
+            self.spotify_extractor = None
 
         # botにmusic_serviceを追加
         bot.music_service = self.music_service
