@@ -9,7 +9,7 @@ class CogFactory(ABC):
         pass
 
 
-class KyriosCogFactory(CogFactory):
+class LunaCogFactory(CogFactory):
     def __init__(self):
         self._cog_registry: Dict[str, Type] = {}
         self.logger = logging.getLogger(__name__)

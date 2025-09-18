@@ -1,8 +1,8 @@
-# Kyrios - セキュリティガイド
+# Luna - セキュリティガイド
 
 ## 概要
 
-このガイドでは、Kyriosボットのセキュリティベストプラクティス、脆弱性対策、安全な運用方法について説明します。
+このガイドでは、Lunaボットのセキュリティベストプラクティス、脆弱性対策、安全な運用方法について説明します。
 
 ---
 
@@ -354,7 +354,7 @@ sudo chown kyrios-bot:kyrios-bot /opt/kyrios-bot
 ```ini
 # /etc/systemd/system/kyrios-bot.service
 [Unit]
-Description=Kyrios Discord Bot
+Description=Luna Discord Bot
 After=network.target
 
 [Service]

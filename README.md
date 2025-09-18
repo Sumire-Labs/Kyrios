@@ -1,11 +1,11 @@
-# Kyrios Bot
+# Luna Bot
 
 ![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.4.0-blue.svg)
 ![Version](https://img.shields.io/badge/version-0.1.9-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MPL--2.0-green.svg)
 
-**Kyrios**は個人用の高度なDiscord管理BOTです。オーバーエンジニアリングされたアーキテクチャと、最適化されたUX/パフォーマンスを提供します。
+**Luna**は個人用の高度なDiscord管理BOTです。オーバーエンジニアリングされたアーキテクチャと、最適化されたUX/パフォーマンスを提供します。
 
 ## 特徴
 
@@ -80,7 +80,7 @@ poetry run python bot.py
 
 ### プロジェクト構造
 ```
-Kyrios/
+Luna/
 ├── bot.py              # メインBOTファイル
 ├── config.toml         # 設定ファイル
 ├── config.toml.example # 設定ファイルテンプレート
@@ -163,12 +163,12 @@ Kyrios/
 [bot]
 token = "YOUR_BOT_TOKEN_HERE"
 prefix = "!"
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 
 # ボットステータス設定 (v0.1.5+)
 [status]
 type = "game"                 # game, watching, listening, streaming
-message = "Kyrios v0.1.7"
+message = "Luna v0.1.7"
 streaming_url = ""            # streaming時のみ必要
 
 [database]
@@ -209,7 +209,7 @@ auto_mod = false
 
 ## ドキュメント
 
-Kyriosは包括的なドキュメントを提供しています。開発・運用・トラブルシューティングまで網羅した12のドキュメントが利用可能です。
+Lunaは包括的なドキュメントを提供しています。開発・運用・トラブルシューティングまで網羅した12のドキュメントが利用可能です。
 
 ### **アーキテクチャ・設計**
 | ドキュメント | 概要 |

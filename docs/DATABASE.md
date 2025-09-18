@@ -1,8 +1,8 @@
-# Kyrios Bot - データベースドキュメント
+# Luna Bot - データベースドキュメント
 
 ## データベース設計概要
 
-KyriosはSQLite + SQLModel (FastAPI風) を使用して、型安全で効率的なデータ管理を行っています。
+LunaはSQLite + SQLModel (FastAPI風) を使用して、型安全で効率的なデータ管理を行っています。
 
 ## データベース構成
 
@@ -702,7 +702,7 @@ async def cleanup_old_logs(self, days: int = 30) -> int:
 
 ### データ整合性の確保
 
-Kyriosでは、複数のテーブルにまたがる操作でデータ整合性を保証するため、適切なトランザクション管理を実装しています。
+Lunaでは、複数のテーブルにまたがる操作でデータ整合性を保証するため、適切なトランザクション管理を実装しています。
 
 #### 問題のあるパターン（非推奨）
 ```python
@@ -818,4 +818,4 @@ async def get_user_tickets(self, user_id: int):
         return list(result.scalars().all())
 ```
 
-このトランザクション管理により、Kyriosは高いデータ整合性と信頼性を確保しています。
+このトランザクション管理により、Lunaは高いデータ整合性と信頼性を確保しています。

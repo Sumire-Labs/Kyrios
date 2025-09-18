@@ -10,7 +10,7 @@ from di import container, inject_dependencies, ConfigDep, DatabaseDep, EventBusD
 from dependency_injector.wiring import inject, Provide
 
 
-class KyriosBot(commands.Bot):
+class LunaBot(commands.Bot):
     @inject
     def __init__(
         self,
@@ -94,7 +94,7 @@ class KyriosBot(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
-        self.logger.info("Setting up Kyrios Bot...")
+        self.logger.info("Setting up Luna Bot...")
         await self._load_cogs()
 
         # スラッシュコマンドをDiscordに同期
@@ -105,7 +105,7 @@ class KyriosBot(commands.Bot):
         except Exception as e:
             self.logger.error(f"Failed to sync slash commands: {e}")
 
-        self.logger.info("Kyrios Bot setup completed")
+        self.logger.info("Luna Bot setup completed")
 
     async def _load_cogs(self) -> None:
         cog_files: list[str] = [
@@ -189,7 +189,7 @@ class KyriosBot(commands.Bot):
         })
 
     async def close(self) -> None:
-        self.logger.info("Shutting down Kyrios Bot...")
+        self.logger.info("Shutting down Luna Bot...")
         await self.event_bus.emit_event("bot_shutdown", {})
         await super().close()
 
@@ -207,7 +207,7 @@ async def main():
         cog_factory = container.cog_factory()
 
         # ボット初期化
-        bot = KyriosBot(
+        bot = LunaBot(
             config=config,
             database=database_manager,
             event_bus=event_bus,

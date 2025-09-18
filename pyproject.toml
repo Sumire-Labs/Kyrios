@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "kyrios"
+name = "luna"
 version = "0.1.9"
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 authors = ["s12kuma01"]
 readme = "README.md"
-packages = [{include = "kyrios"}]
+packages = [{include = "luna"}]
 
 [tool.poetry.dependencies]
 python = "^3.13"

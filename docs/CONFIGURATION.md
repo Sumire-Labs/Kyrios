@@ -1,8 +1,8 @@
-# Kyrios Bot - 設定ガイド
+# Luna Bot - 設定ガイド
 
 ## 設定ファイル概要
 
-Kyriosボットの設定は `config.toml` ファイルで管理されています。このファイルはTOML形式で記述され、ボットの動作をカスタマイズできます。
+Lunaボットの設定は `config.toml` ファイルで管理されています。このファイルはTOML形式で記述され、ボットの動作をカスタマイズできます。
 
 ## 設定ファイル構造
 
@@ -42,7 +42,7 @@ Kyriosボットの設定は `config.toml` ファイルで管理されていま�
 [bot]
 token = "YOUR_BOT_TOKEN_HERE"
 prefix = "!"
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 ```
 
 ### パラメーター詳細
@@ -65,7 +65,7 @@ description = "Kyrios - Advanced Discord Administration Bot"
 
 #### `description`
 - **型**: String
-- **デフォルト**: `"Kyrios - Advanced Discord Administration Bot"`
+- **デフォルト**: `"Luna - Advanced Discord Administration Bot"`
 - **説明**: ボットの説明文
 - **用途**: ヘルプメッセージなどで表示
 
@@ -78,7 +78,7 @@ description = "Kyrios - Advanced Discord Administration Bot"
 ```toml
 [status]
 type = "game"
-message = "Kyrios v0.1.6"
+message = "Luna v0.1.6"
 streaming_url = ""
 ```
 
@@ -100,7 +100,7 @@ streaming_url = ""
 - **デフォルト**: `"Advanced Discord Bot"`
 - **説明**: ステータスメッセージ
 - **例**:
-  - `"Kyrios v0.1.6"`
+  - `"Luna v0.1.6"`
   - `"サーバー管理"`
   - `"24/7 稼働中"`
 
@@ -117,7 +117,7 @@ streaming_url = ""
 # ゲーム表示
 [status]
 type = "game"
-message = "Kyrios v0.1.6"
+message = "Luna v0.1.6"
 
 # 視聴中表示
 [status]
@@ -362,7 +362,7 @@ log_joins = true
 [bot]
 token = "DEV_BOT_TOKEN"
 prefix = "dev!"
-description = "Kyrios - Development Build"
+description = "Luna - Development Build"
 
 [database]
 path = "data/dev/kyrios_dev.db"
@@ -394,7 +394,7 @@ log_joins = true
 [bot]
 token = "PRODUCTION_BOT_TOKEN"
 prefix = "!"
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 
 [database]
 path = "data/production/kyrios.db"

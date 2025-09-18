@@ -1,8 +1,8 @@
-# Kyrios Bot - テストドキュメント
+# Luna Bot - テストドキュメント
 
 ## テスト戦略概要
 
-Kyriosは包括的なテストカバレッジを提供し、高品質で信頼性の高いコードベースを維持しています。
+Lunaは包括的なテストカバレッジを提供し、高品質で信頼性の高いコードベースを維持しています。
 
 ## テストの種類
 
@@ -393,7 +393,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from patterns.command import Command, CommandInvoker
 from patterns.observer import EventBus, Observer
-from patterns.factory import KyriosCogFactory
+from patterns.factory import LunaCogFactory
 
 
 class TestCommandPattern:
@@ -512,7 +512,7 @@ class TestObserverPattern:
 class TestFactoryPattern:
     def test_cog_registration_and_creation(self):
         """Cog登録・作成テスト"""
-        factory = KyriosCogFactory()
+        factory = LunaCogFactory()
 
         # モックCogクラス
         class MockCog:
@@ -534,7 +534,7 @@ class TestFactoryPattern:
 
     def test_unknown_cog_creation(self):
         """未知のCog作成エラーテスト"""
-        factory = KyriosCogFactory()
+        factory = LunaCogFactory()
 
         with pytest.raises(ValueError, match="Unknown cog type"):
             factory.create_cog("unknown_cog")
@@ -688,7 +688,7 @@ import pytest
 import asyncio
 from unittest.mock import patch
 
-from bot import KyriosBot
+from bot import LunaBot
 
 
 class TestBotE2E:
@@ -700,7 +700,7 @@ class TestBotE2E:
             mock_settings.return_value.bot_token = "test_token"
             mock_settings.return_value.database_path = ":memory:"
 
-            bot = KyriosBot()
+            bot = LunaBot()
             yield bot
 
     @pytest.mark.e2e
@@ -1071,4 +1071,4 @@ class TestBackwardCompatibility:
         assert hasattr(ticket, 'user_id')
 ```
 
-この包括的なテストスイートにより、Kyriosの品質と信頼性を継続的に維持し、v0.1.6での変更が既存機能に悪影響を与えていないことを確認できます。
+この包括的なテストスイートにより、Lunaの品質と信頼性を継続的に維持し、v0.1.6での変更が既存機能に悪影響を与えていないことを確認できます。

@@ -1,8 +1,8 @@
-# Kyrios Bot - 依存性注入 (DI) システム
+# Luna Bot - 依存性注入 (DI) システム
 
 ## DI システム概要
 
-KyriosはPython用の高機能DIライブラリ`dependency-injector`を使用して、依存関係の管理を行っています。
+LunaはPython用の高機能DIライブラリ`dependency-injector`を使用して、依存関係の管理を行っています。
 
 ## DIコンテナ構成
 
@@ -25,7 +25,7 @@ class Container(containers.DeclarativeContainer):
     event_bus = providers.Singleton(EventBus)
 
     # ファクトリープロバイダー
-    cog_factory = providers.Singleton(KyriosCogFactory)
+    cog_factory = providers.Singleton(LunaCogFactory)
 ```
 
 ## プロバイダーの種類
@@ -187,7 +187,7 @@ async def main():
     ])
 
     try:
-        bot = KyriosBot()  # DIが自動的に動作
+        bot = LunaBot()  # DIが自動的に動作
         await bot.start(bot.settings.bot_token)
     finally:
         container.shutdown_resources()
@@ -349,4 +349,4 @@ def function(database: "DatabaseManager" = DatabaseDep):
 - **軽量オブジェクト**: 一時的なサービスクラス
 - **状態を持たないオブジェクト**: ユーティリティクラス
 
-この設計により、Kyriosは柔軟で保守しやすい依存関係管理を実現しています。
+この設計により、Lunaは柔軟で保守しやすい依存関係管理を実現しています。

@@ -1,7 +1,7 @@
 [bot]
 token = "YOUR_BOT_TOKEN_HERE"
 prefix = "!"
-description = "Kyrios - Advanced Discord Administration Bot"
+description = "Luna - Advanced Discord Administration Bot"
 
 [status]
 type = "game"  # game, watching, listening, streaming, custom
@@ -9,12 +9,12 @@ message = "v0.1.9"
 streaming_url = ""  # Twitch URLのみ有効 (typeがstreamingの場合)
 
 [database]
-path = "kyrios.db"
+path = "luna.db"
 backup_interval = 3600  # seconds
 
 [logging]
 level = "INFO"
-file = "kyrios.log"
+file = "luna.log"
 max_size = 10485760  # 10MB
 
 [features]

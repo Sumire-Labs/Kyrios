@@ -1,4 +1,4 @@
-# Kyrios Bot - 機能開発ガイド
+# Luna Bot - 機能開発ガイド
 
 ## 新機能開発の流れ
 
@@ -419,7 +419,7 @@ async def test_full_workflow():
 
 ### 共通ユーティリティの活用
 
-Kyriosでは`common/`ディレクトリに再利用可能なユーティリティを配置しています。
+Lunaでは`common/`ディレクトリに再利用可能なユーティリティを配置しています。
 
 #### 画像解析ユーティリティ
 ```python
@@ -647,7 +647,7 @@ async def monitor_performance(self, operation_name: str, operation):
 
 ### 実装済み音楽システムの概要
 
-Kyriosには既に完全な音楽システムが実装されています。このセクションでは、音楽システムの設計パターンと拡張方法を説明します。
+Lunaには既に完全な音楽システムが実装されています。このセクションでは、音楽システムの設計パターンと拡張方法を説明します。
 
 #### 音楽システムアーキテクチャ
 
@@ -667,7 +667,7 @@ cogs/
 ```python
 # music/music_service.py
 class MusicService:
-    """音楽システムメインサービス - Kyriosパターン準拠"""
+    """音楽システムメインサービス - Lunaパターン準拠"""
 
     def __init__(self, database_manager, event_bus, youtube_extractor):
         self.database = database_manager
@@ -700,7 +700,7 @@ class MusicPlayer:
 ```python
 # cogs/music.py
 class MusicPlayerView(discord.ui.View):
-    """オールインワン音楽プレイヤー - Kyriosパターン準拠"""
+    """オールインワン音楽プレイヤー - Lunaパターン準拠"""
 
     def __init__(self, bot, guild_id: int):
         super().__init__(timeout=None)  # 永続View
@@ -723,7 +723,7 @@ class MusicPlayerView(discord.ui.View):
         await interaction.response.send_modal(modal)
 
 class QuickAddModal(discord.ui.Modal):
-    """楽曲追加用モーダル - Kyriosスタイル"""
+    """楽曲追加用モーダル - Lunaスタイル"""
 
     query = discord.ui.TextInput(
         label="YouTubeURL または 検索キーワード",
@@ -754,7 +754,7 @@ def create_music_player_embed(track: Dict, session: Dict, queue: List[Dict]):
         18
     )
 
-    embed = discord.Embed(title="🎵 Kyrios Music Player", color=color)
+    embed = discord.Embed(title="🎵 Luna Music Player", color=color)
     embed.description = f"""
 **🎶 [{track['title']}]({track['url']})**
 👤 **{track['artist']}**
@@ -888,7 +888,7 @@ async def disconnect_voice(self, guild_id: int):
 4. **エラー処理**: 音楽再生は外部依存が多いため、強固なエラーハンドリングが必要
 5. **リソース管理**: ボイス接続・プレイヤーオブジェクトの適切な管理
 
-この音楽システム実装により、Kyriosはエンターテイメント性と技術的洗練性を両立したDiscordボットとなっています。
+この音楽システム実装により、Lunaはエンターテイメント性と技術的洗練性を両立したDiscordボットとなっています。
 
 ---
 

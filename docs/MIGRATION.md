@@ -1,8 +1,8 @@
-# Kyrios - マイグレーションガイド
+# Luna - マイグレーションガイド
 
 ## 概要
 
-このガイドでは、Kyriosボットのバージョン間の移行手順と互換性に関する情報を提供します。
+このガイドでは、Lunaボットのバージョン間の移行手順と互換性に関する情報を提供します。
 
 ---
 
@@ -83,7 +83,7 @@ poetry install
 # config.toml に以下を追加可能（v0.1.5の機能）
 [status]
 type = "game"
-message = "Kyrios v0.1.6"
+message = "Luna v0.1.6"
 streaming_url = ""
 
 [eventbus]

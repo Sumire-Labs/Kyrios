@@ -1,4 +1,4 @@
-# Kyrios Bot - トラブルシューティングガイド
+# Luna Bot - トラブルシューティングガイド
 
 ## 問題解決の基本手順
 
@@ -451,7 +451,7 @@ max_history_size = 1000
 
 [status]
 type = "game"
-message = "Kyrios v0.1.6"
+message = "Luna v0.1.6"
 ```
 
 **注意**: これらの設定は必須ではありません。未設定でもボットは正常動作します。
