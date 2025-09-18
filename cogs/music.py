@@ -464,8 +464,8 @@ class MusicCog(commands.Cog):
         # botにmusic_serviceを追加
         bot.music_service = self.music_service
 
-    @app_commands.command(name="play", description="音楽を再生します - YouTube/Spotify URL対応")
-    @app_commands.describe(query="YouTubeURL, SpotifyURL, または検索キーワード")
+    @app_commands.command(name="play", description="音楽を再生します - YouTube/Spotifyプレイリスト対応")
+    @app_commands.describe(query="YouTube/SpotifyのURL・プレイリスト、または検索キーワード")
     async def play(self, interaction: discord.Interaction, query: str):
         """拡張音楽再生コマンド - Spotify対応版"""
         await interaction.response.defer()
@@ -476,6 +476,7 @@ class MusicCog(commands.Cog):
         # 2️⃣ ソース別ローディングメッセージ
         loading_messages = {
             "youtube": f"🔍 YouTubeから `{query[:50]}` を検索中...",
+            "youtube_playlist": "📋 YouTubeプレイリストを読み込み中...",
             "spotify_track": "🎵 Spotify楽曲を処理中...",
             "spotify_playlist": "📋 Spotifyプレイリストを読み込み中...",
             "spotify_album": "💿 Spotifyアルバムを読み込み中...",
@@ -508,7 +509,9 @@ class MusicCog(commands.Cog):
                 return
 
             # 5️⃣ ソース別処理分岐
-            if url_info.source == "spotify_track":
+            if url_info.source == "youtube_playlist":
+                await self._handle_youtube_playlist(interaction, message, url_info)
+            elif url_info.source == "spotify_track":
                 await self._handle_spotify_track(interaction, message, url_info)
             elif url_info.source == "spotify_playlist":
                 await self._handle_spotify_playlist(interaction, message, url_info)
@@ -707,6 +710,72 @@ class MusicCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Error during MusicCog cleanup: {e}")
+
+    # =========================
+    # プレイリスト処理メソッド
+    # =========================
+
+    async def _handle_youtube_playlist(self, interaction: discord.Interaction, message: discord.WebhookMessage, url_info):
+        """YouTubeプレイリストの処理"""
+        # プレイリスト情報取得
+        playlist_data = await self.youtube_extractor.get_playlist_info(url_info.id)
+        if not playlist_data:
+            raise Exception("YouTubeプレイリストが見つかりません")
+
+        tracks = await self.youtube_extractor.get_playlist_tracks(url_info.id)
+        total_tracks = len(tracks)
+
+        if total_tracks == 0:
+            raise Exception("プレイリストに楽曲が見つかりません")
+
+        # プログレス更新用
+        progress_embed = EmbedBuilder.create_loading_embed(
+            "プレイリスト処理中",
+            f"📋 **{playlist_data.get('title', 'Unknown Playlist')}** ({total_tracks}曲)\n⏳ 0/{total_tracks} 曲処理完了"
+        )
+        await message.edit(embed=progress_embed)
+
+        added_tracks = []
+        failed_tracks = []
+
+        # 各楽曲を順次処理
+        for i, track_info in enumerate(tracks):
+            try:
+                # YouTubeの場合は直接キューに追加可能
+                await self._add_track_to_queue(interaction, track_info)
+                added_tracks.append(track_info)
+
+                # プログレス更新（5曲ごと）
+                if (i + 1) % 5 == 0 or i == total_tracks - 1:
+                    progress_embed.description = f"📋 **{playlist_data.get('title', 'Unknown Playlist')}** ({total_tracks}曲)\n⏳ {i+1}/{total_tracks} 曲処理完了"
+                    await message.edit(embed=progress_embed)
+
+            except Exception as e:
+                self.logger.error(f"Failed to process track {i}: {e}")
+                failed_tracks.append(f"{track_info.title} - {track_info.artist}")
+
+        # 完了メッセージ
+        success_description = f"📋 **{playlist_data.get('title', 'Unknown Playlist')}** をキューに追加\n"
+        success_description += f"✅ 成功: {len(added_tracks)}曲\n"
+        if failed_tracks:
+            success_description += f"❌ 失敗: {len(failed_tracks)}曲\n"
+        success_description += f"🔗 [YouTube]({url_info.url})"
+
+        final_embed = EmbedBuilder.create_success_embed(
+            "プレイリスト追加完了",
+            success_description
+        )
+
+        # 失敗した楽曲があれば詳細表示
+        if failed_tracks and len(failed_tracks) <= 10:
+            final_embed.add_field(
+                name="❌ 追加に失敗した楽曲",
+                value="\n".join(failed_tracks[:10]),
+                inline=False
+            )
+
+        await message.edit(embed=final_embed)
+        await self._update_player_ui_if_needed(interaction)
 
     # =========================
     # Spotify処理メソッド

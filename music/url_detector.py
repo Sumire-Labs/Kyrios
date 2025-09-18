@@ -5,7 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class URLInfo:
     """URL情報クラス"""
-    source: Literal["youtube", "spotify_track", "spotify_playlist", "spotify_album", "search"]
+    source: Literal["youtube", "youtube_playlist", "spotify_track", "spotify_playlist", "spotify_album", "search"]
     url: str
     id: Optional[str] = None
     type: Optional[str] = None
@@ -22,6 +22,7 @@ class URLDetector:
 
     # YouTube URL パターン
     YOUTUBE_PATTERNS = {
+        'playlist': re.compile(r'https://(?:www\.)?youtube\.com/playlist\?list=([a-zA-Z0-9_-]+)'),
         'video': re.compile(r'https://(?:www\.)?youtube\.com/watch\?v=([a-zA-Z0-9_-]+)'),
         'short': re.compile(r'https://youtu\.be/([a-zA-Z0-9_-]+)')
     }
@@ -46,12 +47,20 @@ class URLDetector:
         for youtube_type, pattern in cls.YOUTUBE_PATTERNS.items():
             match = pattern.match(query)
             if match:
-                return URLInfo(
-                    source="youtube",
-                    url=query,
-                    id=match.group(1),
-                    type=youtube_type
-                )
+                if youtube_type == 'playlist':
+                    return URLInfo(
+                        source="youtube_playlist",
+                        url=query,
+                        id=match.group(1),
+                        type=youtube_type
+                    )
+                else:
+                    return URLInfo(
+                        source="youtube",
+                        url=query,
+                        id=match.group(1),
+                        type=youtube_type
+                    )
 
         # 3. 検索クエリとして扱う
         return URLInfo(

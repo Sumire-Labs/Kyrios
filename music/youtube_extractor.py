@@ -326,6 +326,69 @@ class YouTubeExtractor:
                 query.startswith('spotify:') or
                 'open.spotify.com' in query)
 
+    async def get_playlist_info(self, playlist_id: str) -> Optional[Dict[str, Any]]:
+        """YouTubeプレイリストの情報を取得"""
+        try:
+            playlist_url = f"https://www.youtube.com/playlist?list={playlist_id}"
+
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(
+                None,
+                lambda: yt_dlp.YoutubeDL(self.ytdl_opts).extract_info(
+                    playlist_url, download=False
+                )
+            )
+
+            if data and 'entries' in data:
+                self.logger.info(f"Found playlist: {data.get('title', 'Unknown')} with {len(data['entries'])} tracks")
+                return data
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Failed to extract playlist info: {e}")
+            return None
+
+    async def get_playlist_tracks(self, playlist_id: str, limit: Optional[int] = None) -> List[TrackInfo]:
+        """YouTubeプレイリストの楽曲一覧を取得"""
+        try:
+            playlist_data = await self.get_playlist_info(playlist_id)
+            if not playlist_data or 'entries' not in playlist_data:
+                return []
+
+            tracks = []
+            entries = playlist_data['entries']
+
+            # limit が指定されている場合は制限
+            if limit:
+                entries = entries[:limit]
+
+            for entry in entries:
+                if entry is None:  # 削除された動画等
+                    continue
+
+                try:
+                    track_info = TrackInfo(
+                        title=entry.get('title', 'Unknown Title'),
+                        artist=entry.get('uploader', 'Unknown Artist'),
+                        url=entry.get('webpage_url', ''),
+                        duration=entry.get('duration', 0) or 0,
+                        thumbnail_url=entry.get('thumbnail'),
+                        source="youtube"
+                    )
+                    tracks.append(track_info)
+
+                except Exception as e:
+                    self.logger.warning(f"Failed to process playlist entry: {e}")
+                    continue
+
+            self.logger.info(f"Successfully processed {len(tracks)} tracks from playlist")
+            return tracks
+
+        except Exception as e:
+            self.logger.error(f"Failed to get playlist tracks: {e}")
+            return []
+
     def get_ffmpeg_options(self) -> Dict[str, str]:
         """FFmpegオプション取得"""
         return self.ffmpeg_opts.copy()
