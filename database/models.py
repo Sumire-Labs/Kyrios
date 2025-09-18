@@ -175,6 +175,12 @@ class Track(SQLModel, table=True):
     requested_by: int  # ユーザーID
     created_at: datetime = Field(default_factory=datetime.now)
 
+    # Spotify統合フィールド
+    spotify_id: Optional[str] = None  # Spotify Track ID
+    spotify_url: Optional[str] = None  # Spotify URL
+    album_name: Optional[str] = None  # アルバム名
+    release_date: Optional[str] = None  # リリース日
+
 
 class Queue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

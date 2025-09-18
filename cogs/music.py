@@ -12,6 +12,8 @@ from dependency_injector.wiring import inject, Provide
 from database.models import LoopMode
 from music.music_service import MusicService
 from music.youtube_extractor import YouTubeExtractor
+from music.spotify_extractor import SpotifyExtractor
+from music.url_detector import URLDetector
 
 
 class QuickAddModal(discord.ui.Modal):
@@ -445,24 +447,49 @@ class MusicCog(commands.Cog):
         self.youtube_extractor = YouTubeExtractor()
         self.music_service = MusicService(self.database, self.event_bus, self.youtube_extractor)
 
+        # Spotify統合の初期化
+        self.spotify_extractor = None
+        if self.config.spotify_enabled:
+            try:
+                self.spotify_extractor = SpotifyExtractor(
+                    client_id=self.config.spotify_client_id,
+                    client_secret=self.config.spotify_client_secret
+                )
+                self.logger.info("Spotify integration enabled")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize Spotify: {e}")
+        else:
+            self.logger.info("Spotify integration disabled (credentials not configured)")
+
         # botにmusic_serviceを追加
         bot.music_service = self.music_service
 
-    @app_commands.command(name="play", description="音楽を再生します")
-    @app_commands.describe(query="YouTubeURL または 検索キーワード")
+    @app_commands.command(name="play", description="音楽を再生します - YouTube/Spotify URL対応")
+    @app_commands.describe(query="YouTubeURL, SpotifyURL, または検索キーワード")
     async def play(self, interaction: discord.Interaction, query: str):
-        """メインの音楽再生コマンド"""
+        """拡張音楽再生コマンド - Spotify対応版"""
         await interaction.response.defer()
 
-        # 1️⃣ ローディング表示
+        # 1️⃣ URL種別検出
+        url_info = URLDetector.detect_url_type(query)
+
+        # 2️⃣ ソース別ローディングメッセージ
+        loading_messages = {
+            "youtube": f"🔍 YouTubeから `{query[:50]}` を検索中...",
+            "spotify_track": "🎵 Spotify楽曲を処理中...",
+            "spotify_playlist": "📋 Spotifyプレイリストを読み込み中...",
+            "spotify_album": "💿 Spotifyアルバムを読み込み中...",
+            "search": f"🔍 `{query[:50]}` を検索中..."
+        }
+
         loading_embed = EmbedBuilder.create_loading_embed(
-            "音楽検索中",
-            f"🔍 `{query[:50]}{'...' if len(query) > 50 else ''}` を検索中..."
+            "音楽処理中",
+            loading_messages.get(url_info.source, loading_messages["search"])
         )
         message = await interaction.followup.send(embed=loading_embed)
 
         try:
-            # 2️⃣ ボイスチャンネルチェック
+            # 3️⃣ ボイスチャンネルチェック
             if not interaction.user.voice:
                 error_embed = EmbedBuilder.create_error_embed(
                     "接続エラー",
@@ -471,48 +498,31 @@ class MusicCog(commands.Cog):
                 await message.edit(embed=error_embed)
                 return
 
-            # 3️⃣ 既存プレイヤーチェック
-            existing_player = self.music_service.get_player(interaction.guild.id)
-
-            if not existing_player:
-                # ボイスチャンネル接続
-                connected = await self.music_service.connect_voice(interaction.user.voice.channel, interaction.channel)
-                if not connected:
-                    error_embed = EmbedBuilder.create_error_embed("接続エラー", "ボイスチャンネルへの接続に失敗しました")
-                    await message.edit(embed=error_embed)
-                    return
-
-            # 4️⃣ 楽曲検索・追加
-            track_info = await self.music_service.search_and_add(
-                guild_id=interaction.guild.id,
-                query=query,
-                requested_by=interaction.user.id,
-                voice_channel=interaction.user.voice.channel
-            )
-
-            if existing_player and existing_player.is_playing():
-                # キューに追加 + UI更新
-                embed = EmbedBuilder.create_success_embed(
-                    "キューに追加",
-                    f"🎵 **{track_info.title}** をキューに追加しました"
+            # 4️⃣ Spotify機能チェック
+            if url_info.source.startswith("spotify") and not self.spotify_extractor:
+                error_embed = EmbedBuilder.create_error_embed(
+                    "Spotify未対応",
+                    "Spotify機能が無効です。管理者に設定を確認してもらってください"
                 )
-                await message.edit(embed=embed)
+                await message.edit(embed=error_embed)
+                return
 
-                # 古いプレイヤーUIを削除して新しいUIを下に表示
-                await MusicPlayerView.cleanup_old_player_ui(interaction.guild.id)
-                await self._display_music_player_refresh(interaction.channel, interaction.guild.id)
+            # 5️⃣ ソース別処理分岐
+            if url_info.source == "spotify_track":
+                await self._handle_spotify_track(interaction, message, url_info)
+            elif url_info.source == "spotify_playlist":
+                await self._handle_spotify_playlist(interaction, message, url_info)
+            elif url_info.source == "spotify_album":
+                await self._handle_spotify_album(interaction, message, url_info)
             else:
-                # 5️⃣ 新規プレイヤー起動 + UIマネージャー表示
-                await self.music_service.start_player(interaction.guild.id)
-
-                # 6️⃣ 統合プレイヤーUI表示
-                await self._display_music_player(message, interaction.guild.id)
+                # 既存のYouTube/検索処理
+                await self._handle_youtube_or_search(interaction, message, query)
 
         except Exception as e:
             self.logger.error(f"Play command error: {e}")
             error_embed = EmbedBuilder.create_error_embed(
                 "再生エラー",
-                f"楽曲の検索または再生に失敗しました: {str(e)}"
+                f"処理中にエラーが発生しました: {str(e)}"
             )
             await message.edit(embed=error_embed)
 
@@ -697,6 +707,234 @@ class MusicCog(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Error during MusicCog cleanup: {e}")
+
+    # =========================
+    # Spotify処理メソッド
+    # =========================
+
+    async def _handle_spotify_track(self, interaction: discord.Interaction, message: discord.WebhookMessage, url_info):
+        """Spotify楽曲の処理"""
+        # Spotify API で楽曲情報取得
+        spotify_track = await self.spotify_extractor.get_track(url_info.id)
+        if not spotify_track:
+            raise Exception("Spotify楽曲が見つかりません")
+
+        # YouTube変換
+        track_info = await self.spotify_extractor.spotify_to_youtube(spotify_track)
+        if not track_info:
+            raise Exception("YouTube上に対応する楽曲が見つかりません")
+
+        # 既存の音楽システムを使用してキューに追加
+        added_track_info = await self._add_track_to_queue(
+            interaction, track_info, spotify_track, url_info.url
+        )
+
+        # 成功メッセージ
+        success_embed = EmbedBuilder.create_success_embed(
+            "Spotify楽曲追加",
+            f"🎵 **{track_info.title}** - {track_info.artist}\n"
+            f"💿 {spotify_track['album']['name']}\n"
+            f"🎵 [Spotify]({url_info.url}) → 🔗 [YouTube]({track_info.url})"
+        )
+        await message.edit(embed=success_embed)
+        await self._update_player_ui_if_needed(interaction)
+
+    async def _handle_spotify_playlist(self, interaction: discord.Interaction, message: discord.WebhookMessage, url_info):
+        """Spotifyプレイリストの処理"""
+        # プレイリスト情報取得
+        playlist_data = await self.spotify_extractor.get_playlist(url_info.id)
+        if not playlist_data:
+            raise Exception("Spotifyプレイリストが見つかりません")
+
+        tracks = await self.spotify_extractor.get_playlist_tracks(url_info.id)
+        total_tracks = len(tracks)
+
+        if total_tracks == 0:
+            raise Exception("プレイリストに楽曲が見つかりません")
+
+        # プログレス更新用
+        progress_embed = EmbedBuilder.create_loading_embed(
+            "プレイリスト処理中",
+            f"📋 **{playlist_data['name']}** ({total_tracks}曲)\n⏳ 0/{total_tracks} 曲処理完了"
+        )
+        await message.edit(embed=progress_embed)
+
+        added_tracks = []
+        failed_tracks = []
+
+        # 各楽曲を順次処理
+        for i, spotify_track in enumerate(tracks):
+            try:
+                # YouTube変換
+                track_info = await self.spotify_extractor.spotify_to_youtube(spotify_track)
+                if track_info:
+                    # キューに追加
+                    await self._add_track_to_queue(interaction, track_info, spotify_track)
+                    added_tracks.append(track_info)
+                else:
+                    failed_tracks.append(f"{spotify_track['name']} - {spotify_track['artists'][0]['name']}")
+
+                # プログレス更新（5曲ごと）
+                if (i + 1) % 5 == 0 or i == total_tracks - 1:
+                    progress_embed.description = f"📋 **{playlist_data['name']}** ({total_tracks}曲)\n⏳ {i+1}/{total_tracks} 曲処理完了"
+                    await message.edit(embed=progress_embed)
+
+            except Exception as e:
+                self.logger.error(f"Failed to process track {i}: {e}")
+                failed_tracks.append(f"{spotify_track['name']} - {spotify_track['artists'][0]['name']}")
+
+        # 完了メッセージ
+        success_description = f"📋 **{playlist_data['name']}** をキューに追加\n"
+        success_description += f"✅ 成功: {len(added_tracks)}曲\n"
+        if failed_tracks:
+            success_description += f"❌ 失敗: {len(failed_tracks)}曲\n"
+        success_description += f"🎵 [Spotify]({url_info.url})"
+
+        final_embed = EmbedBuilder.create_success_embed(
+            "プレイリスト追加完了",
+            success_description
+        )
+
+        # 失敗した楽曲があれば詳細表示
+        if failed_tracks and len(failed_tracks) <= 10:
+            final_embed.add_field(
+                name="❌ 追加に失敗した楽曲",
+                value="\n".join(failed_tracks[:10]),
+                inline=False
+            )
+
+        await message.edit(embed=final_embed)
+        await self._update_player_ui_if_needed(interaction)
+
+    async def _handle_spotify_album(self, interaction: discord.Interaction, message: discord.WebhookMessage, url_info):
+        """Spotifyアルバムの処理 - プレイリストと同様の処理"""
+        album_data = await self.spotify_extractor.get_album(url_info.id)
+        if not album_data:
+            raise Exception("Spotifyアルバムが見つかりません")
+
+        tracks = await self.spotify_extractor.get_album_tracks(url_info.id)
+        total_tracks = len(tracks)
+
+        if total_tracks == 0:
+            raise Exception("アルバムに楽曲が見つかりません")
+
+        # プログレス更新用
+        progress_embed = EmbedBuilder.create_loading_embed(
+            "アルバム処理中",
+            f"💿 **{album_data['name']}** ({total_tracks}曲)\n⏳ 0/{total_tracks} 曲処理完了"
+        )
+        await message.edit(embed=progress_embed)
+
+        added_tracks = []
+        failed_tracks = []
+
+        # 各楽曲を順次処理
+        for i, spotify_track in enumerate(tracks):
+            try:
+                # YouTube変換
+                track_info = await self.spotify_extractor.spotify_to_youtube(spotify_track)
+                if track_info:
+                    # キューに追加
+                    await self._add_track_to_queue(interaction, track_info, spotify_track)
+                    added_tracks.append(track_info)
+                else:
+                    failed_tracks.append(f"{spotify_track['name']} - {spotify_track['artists'][0]['name']}")
+
+                # プログレス更新（5曲ごと）
+                if (i + 1) % 5 == 0 or i == total_tracks - 1:
+                    progress_embed.description = f"💿 **{album_data['name']}** ({total_tracks}曲)\n⏳ {i+1}/{total_tracks} 曲処理完了"
+                    await message.edit(embed=progress_embed)
+
+            except Exception as e:
+                self.logger.error(f"Failed to process track {i}: {e}")
+                failed_tracks.append(f"{spotify_track['name']} - {spotify_track['artists'][0]['name']}")
+
+        # 完了メッセージ
+        success_description = f"💿 **{album_data['name']}** をキューに追加\n"
+        success_description += f"✅ 成功: {len(added_tracks)}曲\n"
+        if failed_tracks:
+            success_description += f"❌ 失敗: {len(failed_tracks)}曲\n"
+        success_description += f"🎵 [Spotify]({url_info.url})"
+
+        final_embed = EmbedBuilder.create_success_embed(
+            "アルバム追加完了",
+            success_description
+        )
+
+        await message.edit(embed=final_embed)
+        await self._update_player_ui_if_needed(interaction)
+
+    async def _handle_youtube_or_search(self, interaction: discord.Interaction, message: discord.WebhookMessage, query: str):
+        """既存のYouTube/検索処理"""
+        # 既存プレイヤーチェック
+        existing_player = self.music_service.get_player(interaction.guild.id)
+
+        if not existing_player:
+            # ボイスチャンネル接続
+            connected = await self.music_service.connect_voice(interaction.user.voice.channel, interaction.channel)
+            if not connected:
+                error_embed = EmbedBuilder.create_error_embed("接続エラー", "ボイスチャンネルへの接続に失敗しました")
+                await message.edit(embed=error_embed)
+                return
+
+        # 楽曲検索・追加
+        track_info = await self.music_service.search_and_add(
+            guild_id=interaction.guild.id,
+            query=query,
+            requested_by=interaction.user.id,
+            voice_channel=interaction.user.voice.channel
+        )
+
+        if existing_player and existing_player.is_playing():
+            # キューに追加 + UI更新
+            embed = EmbedBuilder.create_success_embed(
+                "キューに追加",
+                f"🎵 **{track_info.title}** をキューに追加しました"
+            )
+            await message.edit(embed=embed)
+
+            # 古いプレイヤーUIを削除して新しいUIを下に表示
+            await MusicPlayerView.cleanup_old_player_ui(interaction.guild.id)
+            await self._display_music_player_refresh(interaction.channel, interaction.guild.id)
+        else:
+            # 新規プレイヤー起動 + UIマネージャー表示
+            await self.music_service.start_player(interaction.guild.id)
+
+            # 統合プレイヤーUI表示
+            await self._display_music_player(message, interaction.guild.id)
+
+    async def _add_track_to_queue(self, interaction: discord.Interaction, track_info, spotify_track=None, spotify_url=None):
+        """楽曲をキューに追加する共通処理"""
+        # 既存プレイヤーチェック
+        existing_player = self.music_service.get_player(interaction.guild.id)
+
+        if not existing_player:
+            # ボイスチャンネル接続
+            connected = await self.music_service.connect_voice(interaction.user.voice.channel, interaction.channel)
+            if not connected:
+                raise Exception("ボイスチャンネルへの接続に失敗しました")
+
+        # 楽曲検索・追加（SpotifyからYouTube変換済みのtrack_infoを使用）
+        added_track_info = await self.music_service.search_and_add(
+            guild_id=interaction.guild.id,
+            query=track_info.url,  # YouTube URL を使用
+            requested_by=interaction.user.id,
+            voice_channel=interaction.user.voice.channel
+        )
+
+        # プレイヤーが停止中なら開始
+        if not existing_player or not existing_player.is_playing():
+            await self.music_service.start_player(interaction.guild.id)
+
+        return added_track_info
+
+    async def _update_player_ui_if_needed(self, interaction: discord.Interaction):
+        """必要に応じてプレイヤーUIを更新"""
+        existing_player = self.music_service.get_player(interaction.guild.id)
+        if existing_player and existing_player.is_playing():
+            # 古いプレイヤーUIを削除して新しいUIを下に表示
+            await MusicPlayerView.cleanup_old_player_ui(interaction.guild.id)
+            await self._display_music_player_refresh(interaction.channel, interaction.guild.id)
 
 
 async def setup(bot):

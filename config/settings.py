@@ -122,3 +122,18 @@ class Settings:
     @property
     def status_streaming_url(self) -> str:
         return self.config.get("status", {}).get("streaming_url", "")
+
+    @property
+    def spotify_client_id(self) -> Optional[str]:
+        return self.config.get("spotify", {}).get("client_id")
+
+    @property
+    def spotify_client_secret(self) -> Optional[str]:
+        return self.config.get("spotify", {}).get("client_secret")
+
+    @property
+    def spotify_enabled(self) -> bool:
+        """Spotify機能が有効かチェック"""
+        return (self.spotify_client_id is not None and
+                self.spotify_client_secret is not None and
+                self.spotify_client_id != "your_spotify_client_id")
