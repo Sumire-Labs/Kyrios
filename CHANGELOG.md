@@ -1,6 +1,71 @@
 # Changelog
 
-Kyrios changelog
+Luna changelog
+
+## [0.1.10] - 2025-09-18
+
+### Added
+- **🎵 Spotify Integration**
+  - Full Spotify API integration with spotipy library
+  - Spotify track, playlist, and album URL support in /play command
+  - Automatic Spotify → YouTube conversion for seamless playback
+  - Enhanced database models with Spotify metadata fields (spotify_id, spotify_url, album_name, release_date)
+
+- **📋 Playlist Support**
+  - YouTube playlist URL detection and bulk import
+  - Spotify playlist bulk import with real-time progress tracking
+  - Spotify album bulk import functionality
+  - Progress indicators for multi-track operations (updates every 5 tracks)
+
+- **🔧 Enhanced Architecture**
+  - URL detector system for automatic source identification
+  - SpotifyExtractor class for API operations and YouTube conversion
+  - Extended URLDetector with YouTube/Spotify playlist patterns
+  - Modular playlist handlers for different source types
+
+- **⚙️ Configuration System**
+  - Spotify API credentials support in config.toml
+  - spotify_enabled property for feature toggle
+  - Automatic fallback when Spotify credentials not configured
+
+### Changed
+- **🏗️ Project Rebranding**
+  - Complete rebrand from "Kyrios" to "Luna" across all files
+  - Updated project name, descriptions, and UI elements
+  - Luna Music Player branding in embedded player interface
+  - Consistent Luna naming in logs, documentation, and user-facing text
+
+- **🎮 Enhanced /play Command**
+  - Extended /play command description for playlist support
+  - Smart URL detection with automatic source routing
+  - Support for YouTube URLs, Spotify URLs, playlists, and search queries
+  - Unified interface for all music sources
+
+- **📊 Improved User Experience**
+  - Detailed progress reporting for playlist operations
+  - Success/failure statistics for bulk imports
+  - Failed track listing (up to 10 tracks) for troubleshooting
+  - Enhanced loading messages based on detected source type
+
+### Technical
+- **🔗 Dependencies**
+  - Added spotipy ^2.23.0 for Spotify Web API integration
+  - Enhanced TrackInfo dataclass for cross-platform compatibility
+  - Extended database schema for Spotify metadata storage
+
+- **🎯 URL Pattern Support**
+  - YouTube videos: `https://youtube.com/watch?v=xxx`
+  - YouTube playlists: `https://youtube.com/playlist?list=xxx`
+  - Spotify tracks: `https://open.spotify.com/track/xxx`
+  - Spotify playlists: `https://open.spotify.com/playlist/xxx`
+  - Spotify albums: `https://open.spotify.com/album/xxx`
+
+### Fixed
+- **⚡ Performance Optimizations**
+  - Async/await pattern for all Spotify API calls
+  - Non-blocking playlist processing with progress updates
+  - Efficient memory usage during bulk operations
+  - Graceful error handling for individual track failures
 
 ## [0.1.9] - 2025-09-18
 

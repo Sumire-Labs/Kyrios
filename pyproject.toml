@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "luna"
-version = "0.1.9"
+version = "0.1.10"
 description = "Luna - Advanced Discord Administration Bot"
 authors = ["s12kuma01"]
 readme = "README.md"
