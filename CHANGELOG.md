@@ -2,6 +2,83 @@
 
 Kyrios changelog
 
+## [0.1.9] - 2025-09-18
+
+### Added
+- **Auto-Cleanup System**
+  - Automatic queue and track history cleanup on voice disconnect
+  - Voice state monitoring for bot disconnect detection
+  - Selective cleanup: auto-cleanup on unexpected disconnect, preserve data on manual stop
+  - Enhanced database cleanup methods for guild-specific data management
+
+- **UI Refresh System**
+  - Dynamic music player UI updates on track addition
+  - Old UI cleanup and new UI positioning at bottom of channel
+  - Real-time UI synchronization after skip operations
+  - Progressive bar continuation after UI refresh
+
+### Changed
+- **Audio Volume Optimization**
+  - Default audio volume reduced to 15% (from 100%) for comfortable listening
+  - PCMVolumeTransformer integration for consistent volume control
+  - Enhanced audio output quality with volume normalization
+
+- **Music Player Stability**
+  - Improved skip button functionality with proper UI refresh
+  - Enhanced error handling for player state transitions
+  - Better resource management during voice operations
+  - Stabilized progress bar updates during track changes
+
+### Fixed
+- **Critical Player Issues**
+  - Fixed infinite recursion in track end handling during loop mode
+  - Resolved "Discord operation failed" errors on stop button interaction
+  - Fixed progress bar freezing after skip operations
+  - Eliminated maximum recursion depth errors in music service
+
+- **Resource Management**
+  - Proper cleanup of music player views and background tasks
+  - Fixed memory leaks in auto-update loops
+  - Enhanced voice disconnect handling with graceful shutdown
+  - Improved task cancellation and resource deallocation
+
+- **UI Stability**
+  - Fixed UI refresh issues after track additions via modal or commands
+  - Resolved button state inconsistencies during playback
+  - Enhanced interaction response handling for music controls
+  - Better error recovery for failed player actions
+
+### Technical Improvements
+- **Enhanced Error Handling**
+  - Retry limits for recursive operations (max 5 retries for play_next, max 3 for track loops)
+  - Graceful degradation when track failures occur
+  - Improved logging for debugging player issues
+  - Better exception propagation and user feedback
+
+- **Performance Optimizations**
+  - Reduced resource usage through proper task cleanup
+  - Optimized UI update frequencies and patterns
+  - Enhanced memory efficiency in music player components
+  - Improved voice client lifecycle management
+
+- **Code Quality**
+  - Better separation of concerns between manual and automatic operations
+  - Enhanced async/await patterns in music operations
+  - Improved type safety and error handling consistency
+  - Better resource lifecycle management
+
+### Migration Notes
+- **Volume Changes**: Audio volume is now set to 15% by default - no user configuration needed
+- **UI Behavior**: Music player UI now refreshes automatically after track additions
+- **Auto-Cleanup**: Voice disconnections now automatically clean data - manual stops preserve queues
+- **Error Recovery**: Improved error handling may result in different behavior during failures
+
+### Performance Improvements
+- **Memory Usage**: Significant reduction in memory leaks through proper task cleanup
+- **UI Responsiveness**: Faster UI updates with optimized refresh patterns
+- **Error Recovery**: Better handling of edge cases and failure scenarios
+- **Resource Efficiency**: Improved cleanup and resource management
+
 ## [0.1.8] - 2025-09-18
 
 ### Added
