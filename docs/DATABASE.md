@@ -181,6 +181,12 @@ class Track(SQLModel, table=True):
     thumbnail_url: Optional[str] = None     # サムネイルURL
     requested_by: int                      # リクエストユーザーID
     created_at: datetime = Field(default_factory=datetime.now)
+
+    # Spotify統合フィールド (v0.1.10+)
+    spotify_id: Optional[str] = None       # Spotify Track ID
+    spotify_url: Optional[str] = None      # Spotify URL
+    album_name: Optional[str] = None       # アルバム名
+    release_date: Optional[str] = None     # リリース日
 ```
 
 #### Queue モデル

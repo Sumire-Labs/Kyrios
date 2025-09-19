@@ -52,6 +52,18 @@
 - Python 3.13以上
 - Poetry（依存関係管理）
 - Discord BOT トークン
+- Spotify API認証情報（音楽機能用、オプション）
+
+### 主要依存関係
+
+- **discord.py** 2.4.0+ - Discord BOT開発フレームワーク
+- **SQLModel** 0.0.22+ - データベースORM・バリデーション
+- **aiosqlite** 0.20.0+ - 非同期SQLiteドライバー
+- **yt-dlp** 2024.12.13+ - YouTube音楽抽出
+- **spotipy** 2.23.0+ - Spotify API統合
+- **dependency-injector** 4.42.0+ - DIコンテナ
+- **Pillow** 11.0.0+ - 画像解析・処理
+- **PyNaCl** 1.5.0+ - Discord音声通信
 
 ### インストール
 
