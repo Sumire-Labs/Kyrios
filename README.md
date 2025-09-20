@@ -69,8 +69,8 @@
 
 1. **リポジトリをクローン**
 ```bash
-git clone https://github.com/your-username/luna-bot.git
-cd luna-bot
+git clone https://github.com/Sumire-Labs/Luna.git
+cd Luna
 ```
 
 2. **依存関係をインストール**
