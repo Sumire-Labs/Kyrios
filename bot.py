@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 from typing import Union
 
-from di import container, inject_dependencies, ConfigDep, DatabaseDep, EventBusDep, CogFactoryDep
+from core import container, inject_dependencies, ConfigDep, DatabaseDep, EventBusDep, CogFactoryDep
 from dependency_injector.wiring import inject, Provide
 
 
