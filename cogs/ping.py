@@ -41,16 +41,18 @@ class PingCog(commands.Cog):
             db_latency = round((time.perf_counter() - db_start) * 1000)
             db_status = f"❌ エラー: {str(e)[:50]}..."
 
-        # システムリソース情報
-        cpu_usage = psutil.cpu_percent()
-        memory_info = psutil.virtual_memory()
-        memory_usage = memory_info.percent
+        # BOTプロセスのリソース情報
+        process = psutil.Process()
+        # CPU使用率測定のため短時間待機
+        cpu_usage = process.cpu_percent(interval=0.1)
+        memory_info = process.memory_info()
+        memory_usage_mb = memory_info.rss / 1024 / 1024  # バイトからMBに変換
 
         # レイテンシ判定は共通関数を使用
 
         # 最終Embed作成
         embed = EmbedBuilder.create_base_embed(
-            title=f"{UIEmojis.PING} 高度なレイテンシ測定結果",
+            title=f"{UIEmojis.PING} Pong! レイテンシ測定結果",
             color=PerformanceUtils.get_latency_color(api_latency)
         )
 
@@ -79,8 +81,8 @@ class PingCog(commands.Cog):
         )
 
         embed.add_field(
-            name=f"{UIEmojis.MEMORY} メモリ使用率",
-            value=f"**{UserFormatter.format_percentage(memory_usage)}**\n({UserFormatter.format_file_size(memory_info.used)} / {UserFormatter.format_file_size(memory_info.total)})",
+            name=f"{UIEmojis.MEMORY} メモリ使用量",
+            value=f"**{UserFormatter.format_file_size(int(memory_usage_mb * 1024 * 1024))}**",
             inline=True
         )
 
