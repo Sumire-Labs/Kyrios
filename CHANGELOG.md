@@ -2,58 +2,118 @@
 
 Luna changelog
 
+## [0.1.11] - 2025-09-20
+
+### Changed
+- **Project Structure Optimization**
+  - Consolidated `config/`, `di/`, `patterns/`, and `luna/` folders into unified `core/` module
+  - Reduced project folder count from 15 to 11 for improved organization
+  - Enhanced maintainability through centralized core system architecture
+  - Unified import system with comprehensive `core/__init__.py` providing all DI aliases
+
+- **Package Configuration Optimization**
+  - Migrated from library mode to application mode with `package-mode = false`
+  - Removed redundant package definition to resolve poetry installation issues
+  - Streamlined build configuration for standalone Discord bot application
+  - Enhanced poetry compatibility and installation reliability
+
+- **Documentation Updates**
+  - Updated all documentation to reflect new `core/` module structure
+  - Revised import examples across README, ARCHITECTURE, DEPENDENCY_INJECTION docs
+  - Enhanced project structure diagrams and development guidelines
+  - Synchronized documentation with new folder organization
+
+### Fixed
+- **Build System Issues**
+  - Resolved "No file/folder found for package luna" poetry installation error
+  - Fixed broken import statements after folder consolidation
+  - Eliminated redundant dependency injection initialization file
+  - Enhanced import path consistency across all modules
+
+### Removed
+- **Redundant Structure Elements**
+  - Removed separate `config/`, `di/`, `patterns/`, and `luna/` directories
+  - Eliminated duplicate `core/di_init.py` file (10 lines, redundant functionality)
+  - Cleaned up unused folder structure improving project navigation
+  - Removed obsolete package references from build configuration
+
+### Technical Improvements
+- **Import System Enhancement**
+  - Centralized all core imports through unified `core/__init__.py`
+  - Simplified import statements: `from core import ConfigDep, DatabaseDep, EventBusDep`
+  - Maintained backward compatibility for all existing functionality
+  - Enhanced code organization with logical module grouping
+
+- **File Organization**
+  - Logical grouping of related functionality in `core/` module
+  - Better separation of concerns with dedicated utility directories
+  - Improved developer experience with intuitive project layout
+  - Enhanced maintainability through reduced folder complexity
+
+### Migration Notes
+- **Breaking Changes**: Import statements updated from `from di import` to `from core import`
+- **Build System**: Package mode disabled - no impact on functionality
+- **Documentation**: All guides updated to reflect new structure
+- **Development**: New developers benefit from simplified project layout
+
+### Performance Impact
+- **Build Performance**: Faster poetry operations with simplified package configuration
+- **Development**: Improved IDE navigation with consolidated structure
+- **Maintenance**: Reduced complexity in project structure management
+- **Documentation**: Easier onboarding with streamlined organization
+
 ## [0.1.10] - 2025-09-18
 
 ### Added
-- **🎵 Spotify Integration**
+- **Spotify Integration**
   - Full Spotify API integration with spotipy library
   - Spotify track, playlist, and album URL support in /play command
   - Automatic Spotify → YouTube conversion for seamless playback
   - Enhanced database models with Spotify metadata fields (spotify_id, spotify_url, album_name, release_date)
 
-- **📋 Playlist Support**
+- **Playlist Support**
   - YouTube playlist URL detection and bulk import
   - Spotify playlist bulk import with real-time progress tracking
   - Spotify album bulk import functionality
   - Progress indicators for multi-track operations (updates every 5 tracks)
 
-- **🔧 Enhanced Architecture**
+- **Enhanced Architecture**
   - URL detector system for automatic source identification
   - SpotifyExtractor class for API operations and YouTube conversion
   - Extended URLDetector with YouTube/Spotify playlist patterns
   - Modular playlist handlers for different source types
 
-- **⚙️ Configuration System**
+- **Configuration System**
   - Spotify API credentials support in config.toml
   - spotify_enabled property for feature toggle
   - Automatic fallback when Spotify credentials not configured
 
 ### Changed
-- **🏗️ Project Rebranding**
+- **Project Rebranding**
   - Complete rebrand from "Kyrios" to "Luna" across all files
   - Updated project name, descriptions, and UI elements
   - Luna Music Player branding in embedded player interface
   - Consistent Luna naming in logs, documentation, and user-facing text
 
-- **🎮 Enhanced /play Command**
+- **Enhanced /play Command**
   - Extended /play command description for playlist support
   - Smart URL detection with automatic source routing
   - Support for YouTube URLs, Spotify URLs, playlists, and search queries
   - Unified interface for all music sources
 
-- **📊 Improved User Experience**
+- **Improved User Experience**
   - Detailed progress reporting for playlist operations
   - Success/failure statistics for bulk imports
   - Failed track listing (up to 10 tracks) for troubleshooting
   - Enhanced loading messages based on detected source type
 
 ### Technical
-- **🔗 Dependencies**
+- **Dependencies**
   - Added spotipy ^2.23.0 for Spotify Web API integration
   - Enhanced TrackInfo dataclass for cross-platform compatibility
   - Extended database schema for Spotify metadata storage
 
-- **🎯 URL Pattern Support**
+- **URL Pattern Support**
   - YouTube videos: `https://youtube.com/watch?v=xxx`
   - YouTube playlists: `https://youtube.com/playlist?list=xxx`
   - Spotify tracks: `https://open.spotify.com/track/xxx`
@@ -61,7 +121,7 @@ Luna changelog
   - Spotify albums: `https://open.spotify.com/album/xxx`
 
 ### Fixed
-- **⚡ Performance Optimizations**
+- **Performance Optimizations**
   - Async/await pattern for all Spotify API calls
   - Non-blocking playlist processing with progress updates
   - Efficient memory usage during bulk operations
