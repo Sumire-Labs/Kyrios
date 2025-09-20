@@ -4,7 +4,6 @@ version = "0.1.10"
 description = "Luna - Advanced Discord Administration Bot"
 authors = ["s12kuma01"]
 readme = "README.md"
-packages = [{include = "luna"}]
 
 [tool.poetry.dependencies]
 python = "^3.13"

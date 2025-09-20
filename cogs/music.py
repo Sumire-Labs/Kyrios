@@ -7,7 +7,7 @@ import logging
 from typing import Optional
 
 from common import EmbedBuilder, UIColors, UIEmojis, UserFormatter, ButtonStyles
-from di import DatabaseDep, EventBusDep, ConfigDep, container
+from core import DatabaseDep, EventBusDep, ConfigDep, container
 from dependency_injector.wiring import inject, Provide
 from database.models import LoopMode
 from music.music_service import MusicService

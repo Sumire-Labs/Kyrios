@@ -1,10 +1,10 @@
 from dependency_injector import containers, providers
 from dependency_injector.wiring import Provide, inject
 
-from config.settings import Settings
+from .settings import Settings
 from database.manager import DatabaseManager
-from patterns.observer import EventBus, LoggingObserver, MetricsObserver
-from patterns.factory import LunaCogFactory, ComponentFactory
+from .observer import EventBus, LoggingObserver, MetricsObserver
+from .factory import LunaCogFactory, ComponentFactory
 from music.youtube_extractor import YouTubeExtractor
 from music.spotify_extractor import SpotifyExtractor
 from music.music_service import MusicService
