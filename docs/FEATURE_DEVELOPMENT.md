@@ -16,7 +16,7 @@
 1. **モデル実装**: `database/models.py`にデータモデル追加
 2. **マネージャー拡張**: `database/manager.py`にCRUD操作追加
 3. **Cog実装**: `cogs/`に機能固有のCogを作成
-4. **DI統合**: 必要に応じて`di/container.py`にプロバイダー追加
+4. **DI統合**: 必要に応じて`core/container.py`にプロバイダー追加
 
 ### 3. テストフェーズ
 1. **単体テスト**: モデル・マネージャーのテスト作成
@@ -35,7 +35,7 @@ from discord import app_commands
 from typing import Optional
 import logging
 
-from di import DatabaseDep, EventBusDep, ConfigDep
+from core import DatabaseDep, EventBusDep, ConfigDep
 from dependency_injector.wiring import inject
 from database.models import NewModel, LogType
 

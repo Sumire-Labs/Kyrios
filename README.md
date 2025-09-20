@@ -100,20 +100,17 @@ Luna/
 ├── config.toml.example # 設定ファイルテンプレート
 ├── pyproject.toml      # Poetry設定ファイル
 ├── test_bot.py         # BOTテスト・開発用スクリプト
-├── luna/               # Pythonパッケージ
-│   └── __init__.py
-├── config/
-│   ├── __init__.py
-│   └── settings.py     # TOML設定管理
+├── core/               # 核心システム統合
+│   ├── __init__.py     # 統合インポート管理
+│   ├── settings.py     # TOML設定管理
+│   ├── container.py    # DIコンテナ設定
+│   ├── command.py      # Command Pattern
+│   ├── factory.py      # Factory Pattern
+│   └── observer.py     # Observer Pattern & EventBus
 ├── database/
 │   ├── __init__.py
 │   ├── models.py       # SQLModelデータモデル
 │   └── manager.py      # データベース操作管理
-├── patterns/           # デザインパターン実装
-│   ├── __init__.py
-│   ├── command.py      # Command Pattern
-│   ├── factory.py      # Factory Pattern
-│   └── observer.py     # Observer Pattern & EventBus
 ├── cogs/               # Discord.py Cogs (機能別モジュール)
 │   ├── __init__.py
 │   ├── ping.py         # システム情報・Pingコマンド
@@ -121,17 +118,12 @@ Luna/
 │   ├── tickets.py      # チケットシステム
 │   ├── logging.py      # ログシステム
 │   └── music.py        # 音楽システム（プレイヤー・キュー管理）
-├── events/             # カスタムイベントハンドラー
-│   └── __init__.py
-├── common/             # 共通ユーティリティ (v0.1.6大幅強化)
+├── common/             # 共通ユーティリティ
 │   ├── __init__.py
 │   ├── embed_builder.py  # 統一Embed作成システム
 │   ├── ui_constants.py   # UI色・絵文字・ボタンスタイル
 │   ├── user_formatter.py # ユーザー情報フォーマット・権限チェック
 │   └── image_analyzer.py # 画像解析・メタデータ抽出
-├── di/                 # 依存性注入システム
-│   ├── __init__.py
-│   └── container.py    # DIコンテナ設定
 ├── music/              # 音楽システムコア
 │   ├── __init__.py
 │   ├── music_service.py    # 音楽サービス・プレイヤー管理
@@ -147,7 +139,6 @@ Luna/
     ├── DEPENDENCY_INJECTION.md # DIシステム使用法
     ├── DEPLOYMENT.md        # 本番環境デプロイガイド
     ├── FEATURE_DEVELOPMENT.md  # 新機能開発ガイド
-    ├── MIGRATION.md         # バージョン移行ガイド
     ├── PERFORMANCE.md       # パフォーマンス最適化
     ├── SECURITY.md          # セキュリティ対策
     ├── TESTING.md           # テスト・CI/CD

@@ -397,7 +397,7 @@ Closes #123
 import discord
 from discord import app_commands
 from discord.ext import commands
-from di import DatabaseDep, EventBusDep, ConfigDep
+from core import DatabaseDep, EventBusDep, ConfigDep
 from dependency_injector.wiring import inject
 
 class NewFeatureCog(commands.Cog):

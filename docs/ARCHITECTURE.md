@@ -19,23 +19,17 @@ Luna/
 ├── config.toml             # BOT設定ファイル
 ├── config.toml.example     # 設定ファイルテンプレート
 ├── test_bot.py             # BOTテスト・開発用スクリプト
-├── luna/                   # Pythonパッケージ
-│   └── __init__.py
-├── config/
-│   ├── __init__.py
-│   └── settings.py         # TOML設定ファイルの読み込み
-├── di/
-│   ├── __init__.py
-│   └── container.py        # DIコンテナ定義
+├── core/                   # 核心システム統合
+│   ├── __init__.py         # 統合インポート管理
+│   ├── settings.py         # TOML設定ファイルの読み込み
+│   ├── container.py        # DIコンテナ定義
+│   ├── command.py          # Command Pattern 実装
+│   ├── factory.py          # Factory Pattern 実装
+│   └── observer.py         # Observer Pattern & EventBus 実装
 ├── database/
 │   ├── __init__.py
 │   ├── models.py           # SQLModel データモデル
 │   └── manager.py          # データベース操作管理
-├── patterns/
-│   ├── __init__.py
-│   ├── command.py          # Command Pattern 実装
-│   ├── factory.py          # Factory Pattern 実装
-│   └── observer.py         # Observer Pattern & EventBus 実装
 ├── cogs/
 │   ├── __init__.py
 │   ├── ping.py             # システム情報・Pingコマンド
@@ -43,9 +37,6 @@ Luna/
 │   ├── tickets.py          # チケットシステム
 │   ├── logging.py          # ログシステム
 │   └── music.py            # 音楽システム（インタラクティブプレイヤー）
-├── events/
-│   ├── __init__.py
-│   └── handlers.py         # カスタムイベントハンドラー
 ├── common/                 # 共通ユーティリティ
 │   ├── __init__.py
 │   ├── embed_builder.py    # Embed作成パターン（音楽プレイヤー含む）
@@ -67,6 +58,8 @@ Luna/
     ├── DEPENDENCY_INJECTION.md
     ├── DEPLOYMENT.md
     ├── FEATURE_DEVELOPMENT.md
+    ├── PERFORMANCE.md
+    ├── SECURITY.md
     ├── TESTING.md
     └── TROUBLESHOOTING.md
 ```
@@ -77,7 +70,7 @@ Luna/
 **目的**: コマンドの実行・取り消し・ログを統一管理
 
 ```python
-from patterns.command import Command, CommandInvoker
+from core import Command, CommandInvoker
 
 class TicketCreateCommand(Command):
     async def execute(self, *args, **kwargs):
@@ -101,7 +94,7 @@ class TicketCreateCommand(Command):
 **目的**: Cogやコンポーネントの動的生成
 
 ```python
-from patterns.factory import LunaCogFactory
+from core import LunaCogFactory
 
 # Cog登録
 factory.register_cog("tickets", TicketsCog)
@@ -120,7 +113,7 @@ cog = factory.create_cog("tickets", bot=bot)
 **目的**: イベントドリブンなログ・通知システム
 
 ```python
-from patterns.observer import EventBus
+from core import EventBus
 
 # イベント発火
 await event_bus.emit_event("ticket_created", {
@@ -214,7 +207,7 @@ Discordイベント → EventListener → Database操作 → LogEmbed生成 → 
 
 ### 設定読み込みフロー
 ```
-config.toml → Settings クラス → DIコンテナ → 各コンポーネント
+config.toml → core/settings.py → DIコンテナ → 各コンポーネント
 ```
 
 ## 共通ユーティリティアーキテクチャ

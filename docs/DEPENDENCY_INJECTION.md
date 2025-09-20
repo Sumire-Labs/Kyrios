@@ -6,7 +6,7 @@ LunaはPython用の高機能DIライブラリ`dependency-injector`を使用し�
 
 ## DIコンテナ構成
 
-### メインコンテナ (`di/container.py`)
+### メインコンテナ (`core/container.py`)
 
 ```python
 from dependency_injector import containers, providers
@@ -67,7 +67,7 @@ wired_event_bus = providers.Resource(
 ### 1. 関数への注入
 
 ```python
-from di import ConfigDep, DatabaseDep, EventBusDep
+from core import ConfigDep, DatabaseDep, EventBusDep
 from dependency_injector.wiring import inject
 
 @inject
@@ -129,7 +129,7 @@ class TicketsCog(commands.Cog):
 
 ### 設定関連
 ```python
-from di import ConfigDep
+from core import ConfigDep
 
 @inject
 def function(config=ConfigDep):
@@ -140,7 +140,7 @@ def function(config=ConfigDep):
 
 ### データベース関連
 ```python
-from di import DatabaseDep
+from core import DatabaseDep
 
 @inject
 async def function(database=DatabaseDep):
@@ -150,7 +150,7 @@ async def function(database=DatabaseDep):
 
 ### イベントシステム関連
 ```python
-from di import EventBusDep
+from core import EventBusDep
 
 @inject
 async def function(event_bus=EventBusDep):
@@ -160,7 +160,7 @@ async def function(event_bus=EventBusDep):
 
 ### ファクトリー関連
 ```python
-from di import CogFactoryDep
+from core import CogFactoryDep
 
 @inject
 def function(factory=CogFactoryDep):
@@ -200,7 +200,7 @@ async def main():
 ```python
 import pytest
 from unittest.mock import AsyncMock
-from di import container
+from core import container
 
 @pytest.fixture
 def mock_database():
