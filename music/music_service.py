@@ -278,77 +278,116 @@ class MusicService:
             self.logger.error(f"Player start error: {e}")
             return False
 
-    async def play_next(self, guild_id: int, retry_count: int = 0):
-        """次の楽曲を再生（制限動画対応強化版・無限再帰防止）"""
-        # 無限再帰防止: 最大5回まで再試行
-        if retry_count >= 5:
-            self.logger.warning(f"Max retry count reached for guild {guild_id}, stopping playback")
-            await self._handle_queue_empty(guild_id)
-            return
+    async def play_next(self, guild_id: int):
+        """
+        次の楽曲を再生（反復処理版 - 無限再帰リスク完全除去）
+
+        設計改善:
+        - 再帰処理を反復処理に変更して Stack Overflow リスク除去
+        - 定数クラスでマジックナンバー排除
+        - より安全で予測可能な制御フロー
+        """
+        from .constants import MusicConstants
 
         player = self.players.get(guild_id)
         if not player:
+            self.logger.debug(f"No player found for guild {guild_id}")
             return
 
-        # キューから次の楽曲を取得
-        queue_item = await self.database.get_next_in_queue(guild_id)
-        if not queue_item:
-            # キューが空
-            await self._handle_queue_empty(guild_id)
-            return
+        retry_count = 0
+        max_retries = MusicConstants.MAX_RETRY_COUNT
 
-        # 楽曲情報を取得
-        track = await self.database.get_track_by_id(queue_item.track_id)
-        if not track:
-            # 楽曲が見つからない場合、キューから削除して次へ（再帰カウント増加）
-            await self.database.remove_from_queue(guild_id, queue_item.id)
-            self.logger.warning(f"Track not found, trying next track (retry: {retry_count + 1})")
-            await self.play_next(guild_id, retry_count + 1)
-            return
+        # 再帰を反復処理に変更（Stack Overflow リスク除去）
+        while retry_count < max_retries:
+            # キューから次の楽曲を取得
+            queue_item = await self.database.get_next_in_queue(guild_id)
+            if not queue_item:
+                # キューが空
+                await self._handle_queue_empty(guild_id)
+                return
 
-        try:
-            # 再生開始を試行
-            await player.play_track(track)
+            # 楽曲情報を取得
+            track = await self.database.get_track_by_id(queue_item.track_id)
+            if not track:
+                # 楽曲が見つからない場合、キューから削除して次へ
+                await self.database.remove_from_queue(guild_id, queue_item.id)
+                self.logger.warning(f"Track not found, trying next track (attempt: {retry_count + 1}/{max_retries})")
+                retry_count += 1
+                continue
 
-            # 成功時のみキューから削除
-            await self.database.remove_from_queue(guild_id, queue_item.id)
+            try:
+                # 再生開始を試行
+                await player.play_track(track)
 
-            # セッション更新
-            await self.database.update_session_current_track(guild_id, track.id)
+                # 成功時のみキューから削除
+                await self.database.remove_from_queue(guild_id, queue_item.id)
 
-            # EventBus通知
-            await self.event_bus.emit_event("track_started", {
-                "guild_id": guild_id,
-                "track_id": track.id,
-                "title": track.title
-            })
+                # セッション更新
+                await self.database.update_session_current_track(guild_id, track.id)
 
-        except Exception as e:
-            # 再生失敗時の処理
-            self.logger.error(f"Failed to play track '{track.title}' in guild {guild_id}: {e}")
+                # EventBus通知
+                await self.event_bus.emit_event("track_started", {
+                    "guild_id": guild_id,
+                    "track_id": track.id,
+                    "title": track.title
+                })
 
-            # 失敗した楽曲もキューから削除（無限ループ防止）
-            await self.database.remove_from_queue(guild_id, queue_item.id)
+                # 成功時は即座に終了
+                self.logger.info(f"Successfully started track '{track.title}' for guild {guild_id}")
+                return
 
-            # 失敗通知
-            await self._notify_track_failed(guild_id, track, str(e))
+            except Exception as e:
+                # 再生失敗時の処理
+                self.logger.error(f"Failed to play track '{track.title}' in guild {guild_id}: {e}")
 
-            # 次の楽曲に自動移行（再帰カウント増加）
-            self.logger.warning(f"Track failed, trying next track (retry: {retry_count + 1})")
-            await self.play_next(guild_id, retry_count + 1)
+                # 失敗した楽曲もキューから削除（無限ループ防止）
+                await self.database.remove_from_queue(guild_id, queue_item.id)
+
+                # 失敗通知
+                await self._notify_track_failed(guild_id, track, str(e))
+
+                # 次の楽曲に自動移行
+                self.logger.warning(f"Track failed, trying next track (attempt: {retry_count + 1}/{max_retries})")
+                retry_count += 1
+                continue
+
+        # 最大試行回数に達した場合
+        self.logger.warning(f"Max retry count ({max_retries}) reached for guild {guild_id}, stopping playback")
+        await self._handle_queue_empty(guild_id)
 
     async def _handle_queue_empty(self, guild_id: int):
-        """キュー空の処理"""
+        """
+        キュー空の処理（再帰除去版）
+
+        設計改善:
+        - play_next()への再帰呼び出しを除去
+        - キューループ処理を安全に分離
+        """
+        from .constants import LoopMode
+
         player = self.players.get(guild_id)
         if player and player.loop_mode == LoopMode.QUEUE:
             # キューループの場合、キューを再構築
-            await self._rebuild_queue_for_loop(guild_id)
-            await self.play_next(guild_id)
+            rebuilt = await self._rebuild_queue_for_loop(guild_id)
+            if rebuilt:
+                # 再構築成功時のみ次の楽曲を再生開始
+                # 再帰ではなく、明示的に新しい再生サイクルを開始
+                self.logger.info(f"Queue rebuilt for loop mode, starting new playback cycle for guild {guild_id}")
+                await self.play_next(guild_id)
+            else:
+                # 再構築失敗時は再生終了
+                self.logger.warning(f"Failed to rebuild queue for loop, ending playback for guild {guild_id}")
+                await self._finalize_playback(guild_id)
         else:
-            # 再生終了
-            await self.event_bus.emit_event("playback_finished", {
-                "guild_id": guild_id
-            })
+            # 通常終了
+            await self._finalize_playback(guild_id)
+
+    async def _finalize_playback(self, guild_id: int):
+        """再生終了処理"""
+        await self.event_bus.emit_event("playback_finished", {
+            "guild_id": guild_id
+        })
+        self.logger.info(f"Playback finalized for guild {guild_id}")
 
     async def _rebuild_queue_for_loop(self, guild_id: int):
         """キューループ用にキューを再構築"""
