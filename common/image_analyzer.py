@@ -78,10 +78,22 @@ class ImageAnalyzer:
     def _extract_dominant_color_sync(self, image: Image.Image) -> str:
         """画像から主要色を抽出（同期版 - スレッドプールで実行）"""
         try:
-            # パフォーマンスのため小さくリサイズ
-            small_image = image.resize((50, 50))
+            # パフォーマンス最適化: アスペクト比を保持しつつ最適サイズにリサイズ
+            # 高品質リサンプリングアルゴリズムを使用
+            original_width, original_height = image.size
 
-            # RGBA や P モードを RGB に変換
+            # 最大サイズを32x32に削減（50x50から大幅改善）
+            max_size = 32
+            if original_width > max_size or original_height > max_size:
+                # アスペクト比を保持してリサイズ
+                ratio = min(max_size / original_width, max_size / original_height)
+                new_width = int(original_width * ratio)
+                new_height = int(original_height * ratio)
+                small_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            else:
+                small_image = image
+
+            # RGBA や P モードを RGB に変換（最適化）
             if small_image.mode in ('RGBA', 'LA', 'P'):
                 # 透明度がある場合は白背景にする
                 rgb_image = Image.new('RGB', small_image.size, (255, 255, 255))
@@ -92,8 +104,8 @@ class ImageAnalyzer:
             elif small_image.mode != 'RGB':
                 small_image = small_image.convert('RGB')
 
-            # 色を取得
-            colors_raw = small_image.getcolors(maxcolors=256)
+            # 色を取得（色数を128に削減してパフォーマンス向上）
+            colors_raw = small_image.getcolors(maxcolors=128)
             if colors_raw:
                 # 最も多く使われている色
                 dominant_color = max(colors_raw, key=lambda x: x[0])
