@@ -2,6 +2,25 @@
 
 Luna changelog
 
+## [0.1.12] - 2025-09-21
+
+### Changed
+- **Ping Command Enhancement**
+  - Updated GUI display to show process-based metrics instead of thread-based metrics
+  - Enhanced metric reporting for better system monitoring accuracy
+  - Improved CPU and memory usage visualization
+
+### Fixed
+- **Configuration Updates**
+  - Fixed configuration example file (config.toml.example) settings
+  - Corrected configuration parameter formatting
+  - Enhanced configuration documentation consistency
+
+- **Documentation Improvements**
+  - Fixed README.md formatting and content
+  - Updated project documentation for better clarity
+  - Improved setup instructions and usage guidelines
+
 ## [0.1.11] - 2025-09-20
 
 ### Changed
