@@ -364,14 +364,22 @@ class DatabaseManager:
             return False
 
     async def get_guild_queue(self, guild_id: int) -> List[dict]:
-        """ギルドのキューを取得 (楽曲情報付き)"""
+        """
+        ギルドのキューを取得 (楽曲情報付き)
+
+        パフォーマンス最適化:
+        - JOINで一度にQueue+Trackデータを取得してN+1クエリを回避
+        - SQLAlchemyの適切なJOIN使用で1回のクエリで完了
+        """
         async with self.async_session() as session:
+            # N+1クエリ回避: JOINで一度にデータ取得
             statement = select(Queue, Track).join(Track, Queue.track_id == Track.id).where(
                 Queue.guild_id == guild_id
             ).order_by(Queue.position)
             result = await session.execute(statement)
 
             queue_items = []
+            # result.all()は既に取得済みデータの反復処理（追加クエリなし）
             for queue_item, track in result.all():
                 queue_items.append({
                     'queue_id': queue_item.id,
