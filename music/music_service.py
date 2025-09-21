@@ -80,11 +80,19 @@ class MusicPlayer:
 
     async def stop(self):
         """停止"""
-        if self.voice_client.is_playing() or self.voice_client.is_paused():
-            self.voice_client.stop()
-        self.current_track = None
-        self.start_time = None
-        self.is_paused_flag = False
+        try:
+            if self.voice_client and (self.voice_client.is_playing() or self.voice_client.is_paused()):
+                self.voice_client.stop()
+                self.logger.debug(f"Voice client stopped for guild {self.guild_id}")
+            else:
+                self.logger.warning(f"Voice client not playing/paused for guild {self.guild_id}")
+        except Exception as e:
+            self.logger.error(f"Error stopping voice client for guild {self.guild_id}: {e}")
+        finally:
+            # 状態は確実にリセット
+            self.current_track = None
+            self.start_time = None
+            self.is_paused_flag = False
 
     async def skip(self):
         """スキップ (次の曲)"""
@@ -417,17 +425,39 @@ class MusicService:
 
     async def disconnect_voice(self, guild_id: int, auto_cleanup: bool = True):
         """ボイスチャンネル切断（自動クリーンアップ付き）"""
-        player = self.players.get(guild_id)
-        if player:
-            await player.voice_client.disconnect()
-            del self.players[guild_id]
+        try:
+            player = self.players.get(guild_id)
+            if player:
+                try:
+                    if player.voice_client and player.voice_client.is_connected():
+                        await player.voice_client.disconnect()
+                        self.logger.info(f"Voice client disconnected for guild {guild_id}")
+                    else:
+                        self.logger.warning(f"Voice client already disconnected for guild {guild_id}")
+                except Exception as voice_error:
+                    self.logger.error(f"Voice disconnect error for guild {guild_id}: {voice_error}")
+                finally:
+                    # プレイヤーは確実に削除
+                    if guild_id in self.players:
+                        del self.players[guild_id]
 
-        if auto_cleanup:
-            # 自動クリーンアップ: キューと履歴をリセット
-            await self._cleanup_guild_data(guild_id)
+            if auto_cleanup:
+                # 自動クリーンアップ: キューと履歴をリセット
+                try:
+                    await self._cleanup_guild_data(guild_id)
+                except Exception as cleanup_error:
+                    self.logger.error(f"Cleanup error for guild {guild_id}: {cleanup_error}")
 
-        # セッション削除
-        await self.database.delete_session(guild_id)
+            # セッション削除
+            try:
+                await self.database.delete_session(guild_id)
+                self.logger.debug(f"Session deleted for guild {guild_id}")
+            except Exception as db_error:
+                self.logger.error(f"Database session delete error for guild {guild_id}: {db_error}")
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error in disconnect_voice for guild {guild_id}: {e}")
+            raise
 
     async def _cleanup_guild_data(self, guild_id: int):
         """ギルドのキューと履歴をクリーンアップ"""
