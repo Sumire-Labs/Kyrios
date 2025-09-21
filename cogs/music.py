@@ -482,14 +482,16 @@ class MusicCog(commands.Cog):
         # 1️⃣ URL種別検出
         url_info = URLDetector.detect_url_type(query)
 
-        # 2️⃣ ソース別ローディングメッセージ
+        # 2️⃣ ソース別ローディングメッセージ（定数使用）
+        from music.constants import MusicConstants
+
         loading_messages = {
-            "youtube": f"🔍 YouTubeから `{query[:50]}` を検索中...",
+            "youtube": f"🔍 YouTubeから `{query[:MusicConstants.QUERY_DISPLAY_MAX_LENGTH]}` を検索中...",
             "youtube_playlist": "📋 YouTubeプレイリストを読み込み中...",
             "spotify_track": "🎵 Spotify楽曲を処理中...",
             "spotify_playlist": "📋 Spotifyプレイリストを読み込み中...",
             "spotify_album": "💿 Spotifyアルバムを読み込み中...",
-            "search": f"🔍 `{query[:50]}` を検索中..."
+            "search": f"🔍 `{query[:MusicConstants.QUERY_DISPLAY_MAX_LENGTH]}` を検索中..."
         }
 
         loading_embed = EmbedBuilder.create_loading_embed(
