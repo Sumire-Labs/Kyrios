@@ -113,7 +113,8 @@ class LunaBot(commands.Bot):
             "cogs.tickets",
             "cogs.logging",
             "cogs.avatar",
-            "cogs.music"
+            "cogs.music",
+            "cogs.translation"
         ]
 
         for cog_file in cog_files:
@@ -127,6 +128,10 @@ class LunaBot(commands.Bot):
                     continue
 
                 if cog_file.endswith("music") and not getattr(self.settings, 'features_music', True):
+                    self.logger.info(f"Skipping {cog_file} (feature disabled)")
+                    continue
+
+                if cog_file.endswith("translation") and not self.settings.features_translation:
                     self.logger.info(f"Skipping {cog_file} (feature disabled)")
                     continue
 
@@ -196,7 +201,7 @@ class LunaBot(commands.Bot):
 
 async def main():
     # DIコンテナをワイヤリング
-    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar", "cogs.music"])
+    container.wire(modules=[__name__, "cogs.ping", "cogs.tickets", "cogs.logging", "cogs.avatar", "cogs.music", "cogs.translation"])
 
     bot = None
     try:
