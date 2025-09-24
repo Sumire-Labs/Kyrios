@@ -8,6 +8,7 @@ import psutil
 from datetime import datetime
 
 from common import EmbedBuilder, PerformanceUtils, UIEmojis, UserFormatter
+from core.container import container
 
 
 class PingCog(commands.Cog):
@@ -100,6 +101,30 @@ class PingCog(commands.Cog):
                 value=f"**処理済み:** {event_stats['total_events_processed']:,}\n**メモリ使用:** {event_stats['memory_efficiency']}\n**破棄済み:** {event_stats['events_discarded']:,}",
                 inline=True
             )
+        except Exception:
+            pass
+
+        # 翻訳サービス状態チェック（設定で有効な場合のみ）
+        try:
+            if getattr(self.bot.settings, 'features_translation', False):
+                translation_service = container.translation_service()
+                translation_status = "✅ 利用可能" if translation_service.is_available() else "❌ 利用不可"
+
+                # 簡易使用量チェック
+                usage_info = ""
+                try:
+                    usage = await translation_service.get_usage_info()
+                    if usage and usage.get('usage_percentage') is not None:
+                        usage_pct = usage['usage_percentage']
+                        usage_info = f"\n使用率: {usage_pct:.1f}%"
+                except Exception:
+                    pass
+
+                embed.add_field(
+                    name="🌐 翻訳サービス",
+                    value=f"{translation_status}{usage_info}",
+                    inline=True
+                )
         except Exception:
             pass
 
