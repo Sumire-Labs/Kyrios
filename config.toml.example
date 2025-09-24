@@ -22,6 +22,7 @@ tickets = true
 logger = true
 auto_mod = false
 music = true
+translation = true
 
 [eventbus]
 max_history_size = 96  # Maximum events to keep in memory (prevents memory leaks)
@@ -29,3 +30,17 @@ max_history_size = 96  # Maximum events to keep in memory (prevents memory leaks
 [spotify]
 client_id = "your_spotify_client_id"
 client_secret = "your_spotify_client_secret"
+
+# DeepL API設定
+[deepl]
+api_key = "your_deepl_api_key"
+api_type = "free"  # free or pro
+rate_limit_per_minute = 30
+default_target_lang = "ja"
+
+# 翻訳機能設定
+[translation]
+max_text_length = 5000
+save_history = true
+enable_auto_detect = true
+show_confidence = true
