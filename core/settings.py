@@ -137,3 +137,45 @@ class Settings:
         return (self.spotify_client_id is not None and
                 self.spotify_client_secret is not None and
                 self.spotify_client_id != "your_spotify_client_id")
+
+    @property
+    def deepl_api_key(self) -> Optional[str]:
+        return self.config.get("deepl", {}).get("api_key")
+
+    @property
+    def deepl_is_pro(self) -> bool:
+        return self.config.get("deepl", {}).get("api_type", "free").lower() == "pro"
+
+    @property
+    def deepl_rate_limit(self) -> int:
+        return self.config.get("deepl", {}).get("rate_limit_per_minute", 30)
+
+    @property
+    def deepl_default_target_lang(self) -> str:
+        return self.config.get("deepl", {}).get("default_target_lang", "ja")
+
+    @property
+    def deepl_enabled(self) -> bool:
+        """DeepL機能が有効かチェック"""
+        return (self.deepl_api_key is not None and
+                self.deepl_api_key != "your_deepl_api_key")
+
+    @property
+    def features_translation(self) -> bool:
+        return self.config.get("features", {}).get("translation", True)
+
+    @property
+    def translation_max_text_length(self) -> int:
+        return self.config.get("translation", {}).get("max_text_length", 5000)
+
+    @property
+    def translation_save_history(self) -> bool:
+        return self.config.get("translation", {}).get("save_history", True)
+
+    @property
+    def translation_enable_auto_detect(self) -> bool:
+        return self.config.get("translation", {}).get("enable_auto_detect", True)
+
+    @property
+    def translation_show_confidence(self) -> bool:
+        return self.config.get("translation", {}).get("show_confidence", True)
