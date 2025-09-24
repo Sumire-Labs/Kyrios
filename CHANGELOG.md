@@ -4,8 +4,97 @@ Luna changelog
 
 ## [0.1.13] - 2025-09-24
 
+### Added
+- **DeepL Translation System Integration**
+  - Complete implementation of high-quality DeepL API translation functionality
+  - Support for 50+ languages with `/translate` command
+  - Automatic language detection and interactive UI
+  - Button UI with reverse translation and usage check features
+  - Real-time translation status monitoring and health checks
+
+- **Translation System Architecture**
+  - `TranslationService` - Integrated translation management service
+  - `DeepLExtractor` - Dedicated DeepL API extractor
+  - Translation history and event tracking functionality
+  - Rate limiting management and usage monitoring system
+  - Comprehensive error handling and fallback mechanisms
+
+- **Advanced Translation UI Features**
+  - Interactive buttons for translation results (reverse translation, usage check)
+  - Multi-language support for language selection system
+  - Translation quality and confidence display
+  - Real-time character count and limit management
+
+- **Configuration System Extensions**
+  - Added DeepL API configuration section to `config.toml`
+  - Detailed translation feature options (max characters, history saving, etc.)
+  - Automatic Free/Pro API plan detection
+  - Translation feature enable/disable toggle
+
 ### Changed
-- 編集中
+- **Major Translation Command Improvements**
+  - Support for 50+ language pairs (Japanese, English, Korean, Chinese, etc.)
+  - Smart automatic language detection
+  - Discord slash command choices support
+  - Improved translation accuracy and response speed
+
+- **DI Container Translation System Integration**
+  - Added translation-related providers to `Container`
+  - Dependency injection support for translation services
+  - Translation event tracking via EventBus integration
+  - Configuration-based automatic initialization system
+
+- **Code Architecture Improvements**
+  - Separated translation-related constant classes (`LanguageCodes`, `TranslationUI`, `TranslationConstants`)
+  - Type-safe translation result data class (`TranslationResult`)
+  - Optimized asynchronous translation processing
+  - Memory-efficient language data management
+
+### Fixed
+- **Enhanced Translation System Robustness**
+  - Comprehensive DeepL API error handling
+  - Appropriate fallbacks for network failures
+  - Automatic recovery for rate limit exceeded scenarios
+  - Safe handling of invalid language code inputs
+
+- **Performance and Stability**
+  - Optimization for large text translations
+  - Memory leak prevention and efficient resource management
+  - Proper control of concurrent translation requests
+  - Improved timeout handling
+
+### Technical Improvements
+- **Translation Quality Enhancement**
+  - Utilization of latest DeepL API features
+  - Context-preserving translation
+  - Proper handling of technical terms and proper nouns
+  - Improved translation consistency and accuracy
+
+- **Developer Experience**
+  - Comprehensive logging and debug information for translation
+  - Detailed diagnostic features for configuration errors
+  - Translation statistics and performance metrics
+  - Translation feature verification in development/test environments
+
+### Configuration
+- **New Configuration Items**
+```toml
+  # DeepL API Configuration
+  [deepl]
+  api_key = "your_deepl_api_key"
+  api_type = "free"  # free or pro
+  rate_limit_per_minute = 30
+  default_target_lang = "ja"
+
+  # Translation Feature Configuration
+  [translation]
+  max_text_length = 5000
+  save_history = true
+  enable_auto_detect = true
+  show_confidence = true
+
+  [features]
+  translation = true  # Enable translation feature
 
 ## [0.1.12] - 2025-09-21
 
