@@ -8,6 +8,8 @@ from .factory import LunaCogFactory, ComponentFactory
 from music.youtube_extractor import YouTubeExtractor
 from music.spotify_extractor import SpotifyExtractor
 from music.music_service import MusicService
+from translation.deepl_extractor import DeepLExtractor
+from translation.translation_service import TranslationService
 
 
 def _setup_event_bus(event_bus: EventBus, logging_observer: LoggingObserver,
@@ -80,6 +82,19 @@ class Container(containers.DeclarativeContainer):
         spotify_extractor=spotify_extractor
     )
 
+    # 翻訳システムプロバイダー
+    deepl_extractor = providers.Singleton(
+        DeepLExtractor,
+        api_key=config.provided.deepl_api_key,
+        is_pro=config.provided.deepl_is_pro
+    )
+
+    translation_service = providers.Singleton(
+        TranslationService,
+        deepl_extractor=deepl_extractor,
+        event_bus=event_bus
+    )
+
 
 # DIコンテナのインスタンス
 container = Container()
@@ -96,3 +111,4 @@ ConfigDep = Provide[Container.config]
 DatabaseDep = Provide[Container.database_manager]
 EventBusDep = Provide[Container.wired_event_bus]
 CogFactoryDep = Provide[Container.cog_factory]
+TranslationServiceDep = Provide[Container.translation_service]
