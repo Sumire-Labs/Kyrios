@@ -5,7 +5,7 @@ description = "Luna - Advanced Discord Administration Bot"
 
 [status]
 type = "game"  # game, watching, listening, streaming, custom
-message = "v0.1.14"
+message = "v0.1.15"
 streaming_url = ""  # Twitch URLのみ有効 (typeがstreamingの場合)
 
 [database]
@@ -25,7 +25,7 @@ music = true
 translation = true
 
 [eventbus]
-max_history_size = 96  # Maximum events to keep in memory (prevents memory leaks)
+max_history_size = 10  # Maximum events to keep in memory (prevents memory leaks)
 
 [spotify]
 client_id = "your_spotify_client_id"

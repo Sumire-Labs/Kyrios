@@ -2,54 +2,84 @@
 
 Luna changelog
 
+# Changelog
+
+## [0.1.15] - 2025-09-24
+
+### Changed
+- **System Integration & Optimization**
+  - Integrated `/translation-status` command into `/ping` command
+  - Centralized and streamlined system status checking
+  - Incorporated translation service status into comprehensive ping reports
+
+- **UI/UX Improvements**
+  - Removed reverse translation button from translation results
+  - Simpler and more intuitive interactive UI
+  - Enhanced usability by removing unnecessary operation options
+
+- **Architecture Optimization**
+  - Code cleanup through removal of redundant features
+  - Preparatory work for memory usage optimization
+  - Fixed and stabilized dependency injection patterns
+
+### Fixed
+- Fixed dependency injection errors in translation functionality
+- Resolved direct reference issues with `Provide` objects
+- Modified implementation to comply with other Cog patterns
+
+### Technical
+- **Major Version Jump**: v0.1.14 → v0.1.15
+  - Major version upgrade due to completion of translation feature foundation
+  - Milestone for system integration optimization
+  - Stable release preparation completed
+
 ## [0.1.14] - 2025-09-24
 
 ### Added
-- **DeepL翻訳システム完全実装**
-  - DeepL API統合による高品質翻訳機能
-  - 50以上の言語をサポートする`/translate`コマンド
-  - 自動言語検出とインタラクティブUI
-  - 逆翻訳・使用量確認ボタンを備えたUI
-  - リアルタイム翻訳状態監視・ヘルスチェック機能
+- **Complete DeepL Translation System Implementation**
+  - High-quality translation functionality through DeepL API integration
+  - `/translate` command supporting 50+ languages
+  - Automatic language detection and interactive UI
+  - UI with reverse translation and usage check buttons
+  - Real-time translation status monitoring and health check functionality
 
-- **翻訳システムアーキテクチャ**
-  - `TranslationService` - 統合翻訳管理サービス
-  - `DeepLExtractor` - 専用DeepL API抽出器
-  - 翻訳履歴・イベント追跡機能（Phase 2で詳細実装予定）
-  - レート制限管理・使用量監視システム
-  - 包括的エラーハンドリング・フォールバック機構
+- **Translation System Architecture**
+  - `TranslationService` - Integrated translation management service
+  - `DeepLExtractor` - Dedicated DeepL API extractor
+  - Translation history and event tracking functionality (detailed implementation planned for Phase 2)
+  - Rate limiting management and usage monitoring system
+  - Comprehensive error handling and fallback mechanisms
 
-- **高度な翻訳UI機能**
-  - 翻訳結果用インタラクティブボタン（逆翻訳、使用量確認）
-  - 言語選択システム・多言語サポート
-  - 翻訳品質・信頼度表示
-  - リアルタイム文字数・制限管理
+- **Advanced Translation UI Features**
+  - Interactive buttons for translation results (reverse translation, usage check)
+  - Language selection system and multilingual support
+  - Translation quality and confidence display
+  - Real-time character count and limit management
 
-- **設定システム拡張**
-  - `config.toml`にDeepL API設定セクション追加
-  - 詳細な翻訳機能オプション（最大文字数、履歴保存等）
-  - Free/Pro APIプラン自動検出
-  - 翻訳機能有効/無効切り替え
+- **Configuration System Extension**
+  - Added DeepL API configuration section to `config.toml`
+  - Detailed translation feature options (max characters, history saving, etc.)
+  - Automatic detection of Free/Pro API plans
+  - Translation feature enable/disable toggle
 
 ### Changed
-- **翻訳コマンド大幅改善**
-  - 50以上の言語ペアサポート（日本語・英語・韓国語・中国語等）
-  - スマート自動言語検出
-  - Discordスラッシュコマンド選択肢サポート
-  - 翻訳精度・応答速度向上
+- **Major Translation Command Improvements**
+  - Support for 50+ language pairs (Japanese, English, Korean, Chinese, etc.)
+  - Smart automatic language detection
+  - Discord slash command choice support
+  - Improved translation accuracy and response speed
 
-- **DIコンテナ翻訳システム統合**
-  - `Container`に翻訳関連プロバイダー追加
-  - 翻訳サービス依存性注入サポート
-  - EventBus統合による翻訳イベント追跡
-  - 設定ベース自動初期化システム
+- **DI Container Translation System Integration**
+  - Added translation-related providers to `Container`
+  - Translation service dependency injection support
+  - Translation event tracking through EventBus integration
+  - Configuration-based automatic initialization system
 
 ### Technical
-- **アーキテクチャ改善**
-  - 翻訳関連定数クラス分離（`LanguageCodes`, `TranslationUI`, `TranslationConstants`）
-  - 型安全な翻訳結果データクラス（`TranslationResult`）
-  - 非同期翻訳処理最適化
-  - Luna's over-engineering philosophy完全準拠
+- **Architecture Improvements**
+  - Separated translation-related constant classes (`LanguageCodes`, `TranslationUI`, `TranslationConstants`)
+  - Type-safe translation result data classes (`TranslationResult`)
+  - Optimized asynchronous translation processing
 
 ## [0.1.13] - 2025-09-24
 
