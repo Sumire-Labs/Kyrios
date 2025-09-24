@@ -5,7 +5,7 @@ import logging
 from typing import Optional, Literal
 from dependency_injector.wiring import inject, Provide
 
-from core.container import Container
+from core.container import container
 from translation import TranslationService, LanguageCodes, TranslationUI, TranslationConstants
 from common import EmbedBuilder, UIColors, UIEmojis, UserFormatter
 
@@ -130,15 +130,12 @@ class TranslationView(discord.ui.View):
 class TranslationCog(commands.Cog):
     """翻訳機能を提供するCog"""
 
-    @inject
-    def __init__(
-        self,
-        bot: commands.Bot,
-        translation_service: TranslationService = Provide[Container.translation_service]
-    ):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.translation_service = translation_service
         self.logger = logging.getLogger(__name__)
+
+        # DIコンテナから直接取得
+        self.translation_service = container.translation_service()
 
     @app_commands.command(name="translate", description="テキストを翻訳します")
     @app_commands.describe(
