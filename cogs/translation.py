@@ -1,0 +1,312 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+import logging
+from typing import Optional, Literal
+from dependency_injector.wiring import inject, Provide
+
+from core.container import Container
+from translation import TranslationService, LanguageCodes, TranslationUI, TranslationConstants
+from common import EmbedBuilder, UIColors, UIEmojis, UserFormatter
+
+
+class TranslationView(discord.ui.View):
+    """翻訳結果表示用のインタラクティブUI"""
+
+    def __init__(self, translation_service: TranslationService, original_text: str,
+                 current_result: dict, user: discord.User):
+        super().__init__(timeout=300)
+        self.translation_service = translation_service
+        self.original_text = original_text
+        self.current_result = current_result
+        self.user = user
+
+    @discord.ui.button(label="逆翻訳", style=discord.ButtonStyle.success, emoji="🔄")
+    async def reverse_translate(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """逆翻訳を実行"""
+        if interaction.user != self.user:
+            await interaction.response.send_message("❌ この操作は翻訳を実行したユーザーのみ可能です。", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        try:
+            # 逆翻訳実行
+            reverse_result = await self.translation_service.translate(
+                text=self.current_result["translated_text"],
+                target_lang="auto",  # 元の言語を推測
+                source_lang=self.current_result.get("target_language_code", "ja"),
+                user_id=interaction.user.id,
+                guild_id=interaction.guild.id if interaction.guild else None
+            )
+
+            if reverse_result:
+                formatted_result = self.translation_service.format_translation_for_discord(reverse_result)
+
+                embed = EmbedBuilder.create_base_embed(
+                    title=f"{TranslationUI.EMOJIS['REVERSE']} 逆翻訳結果",
+                    color=TranslationUI.COLORS["SUCCESS"]
+                )
+
+                # 逆翻訳結果表示
+                embed.add_field(
+                    name=f"{TranslationUI.EMOJIS['SOURCE_LANG']} 翻訳元",
+                    value=UserFormatter.format_code_block(formatted_result["translated_text"][:1000]),
+                    inline=False
+                )
+
+                embed.add_field(
+                    name=f"{TranslationUI.EMOJIS['TARGET_LANG']} 逆翻訳",
+                    value=UserFormatter.format_code_block(formatted_result["original_text"][:1000]),
+                    inline=False
+                )
+
+                embed.add_field(
+                    name="📊 情報",
+                    value=f"言語: {formatted_result['source_language']} → {formatted_result['target_language']}\n"
+                          f"文字数: {formatted_result['character_count']}",
+                    inline=True
+                )
+
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
+            else:
+                await interaction.followup.send("❌ 逆翻訳に失敗しました。", ephemeral=True)
+
+        except Exception as e:
+            logging.error(f"Reverse translation failed: {e}")
+            await interaction.followup.send("❌ 逆翻訳中にエラーが発生しました。", ephemeral=True)
+
+    @discord.ui.button(label="使用量確認", style=discord.ButtonStyle.secondary, emoji="📊")
+    async def check_usage(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """API使用量を確認"""
+        if interaction.user != self.user:
+            await interaction.response.send_message("❌ この操作は翻訳を実行したユーザーのみ可能です。", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        try:
+            usage_info = await self.translation_service.get_usage_info()
+
+            if usage_info:
+                embed = EmbedBuilder.create_info_embed("📊 DeepL API使用量")
+
+                usage_percentage = usage_info.get("usage_percentage", 0)
+                remaining = usage_info.get("character_remaining")
+
+                embed.add_field(
+                    name="使用状況",
+                    value=f"使用文字数: {usage_info.get('character_count', 0):,}\n"
+                          f"制限: {usage_info.get('character_limit', 'unlimited'):,}\n"
+                          f"使用率: {usage_percentage:.1f}%",
+                    inline=True
+                )
+
+                if remaining is not None:
+                    embed.add_field(
+                        name="残り文字数",
+                        value=f"{remaining:,} 文字",
+                        inline=True
+                    )
+
+                # 使用率に応じて色を変更
+                if usage_percentage > 90:
+                    embed.color = TranslationUI.COLORS["ERROR"]
+                elif usage_percentage > 75:
+                    embed.color = discord.Color.orange()
+                else:
+                    embed.color = TranslationUI.COLORS["SUCCESS"]
+
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send("❌ 使用量情報を取得できませんでした。", ephemeral=True)
+
+        except Exception as e:
+            logging.error(f"Usage check failed: {e}")
+            await interaction.followup.send("❌ 使用量確認中にエラーが発生しました。", ephemeral=True)
+
+
+class TranslationCog(commands.Cog):
+    """翻訳機能を提供するCog"""
+
+    @inject
+    def __init__(
+        self,
+        bot: commands.Bot,
+        translation_service: TranslationService = Provide[Container.translation_service]
+    ):
+        self.bot = bot
+        self.translation_service = translation_service
+        self.logger = logging.getLogger(__name__)
+
+    @app_commands.command(name="translate", description="テキストを翻訳します")
+    @app_commands.describe(
+        text="翻訳するテキスト",
+        target_lang="翻訳先言語（省略時は日本語）",
+        source_lang="翻訳元言語（省略時は自動検出）"
+    )
+    async def translate(
+        self,
+        interaction: discord.Interaction,
+        text: str,
+        target_lang: Optional[Literal[
+            "ja", "en-us", "en-gb", "ko", "zh", "fr", "de", "es",
+            "it", "pt-br", "ru", "nl", "pl", "sv", "da", "no"
+        ]] = "ja",
+        source_lang: Optional[Literal[
+            "auto", "en", "ja", "ko", "zh", "fr", "de", "es",
+            "it", "pt", "ru", "nl", "pl", "sv", "da", "no"
+        ]] = "auto"
+    ):
+        """メイン翻訳コマンド"""
+        await interaction.response.defer()
+
+        try:
+            # 翻訳サービスが利用可能かチェック
+            if not self.translation_service.is_available():
+                error_embed = EmbedBuilder.create_error_embed(
+                    "翻訳サービス利用不可",
+                    "DeepL APIキーが設定されていないか、サービスに接続できません。"
+                )
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
+                return
+
+            # 入力バリデーション
+            if len(text) > TranslationConstants.MAX_TEXT_LENGTH:
+                error_embed = EmbedBuilder.create_error_embed(
+                    "テキストが長すぎます",
+                    f"翻訳できるテキストは{TranslationConstants.MAX_TEXT_LENGTH}文字以内です。"
+                )
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
+                return
+
+            # 翻訳実行
+            result = await self.translation_service.translate(
+                text=text,
+                target_lang=target_lang,
+                source_lang=source_lang,
+                user_id=interaction.user.id,
+                guild_id=interaction.guild.id if interaction.guild else None
+            )
+
+            if result:
+                # 翻訳成功
+                formatted_result = self.translation_service.format_translation_for_discord(result)
+
+                embed = EmbedBuilder.create_base_embed(
+                    title=f"{TranslationUI.EMOJIS['TRANSLATE']} 翻訳結果",
+                    color=TranslationUI.COLORS["SUCCESS"]
+                )
+
+                # 元テキスト
+                embed.add_field(
+                    name=f"{TranslationUI.EMOJIS['SOURCE_LANG']} 元テキスト",
+                    value=UserFormatter.format_code_block(text[:1000]),
+                    inline=False
+                )
+
+                # 翻訳結果
+                embed.add_field(
+                    name=f"{TranslationUI.EMOJIS['TARGET_LANG']} 翻訳結果",
+                    value=UserFormatter.format_code_block(formatted_result["translated_text"][:1000]),
+                    inline=False
+                )
+
+                # 言語情報
+                detected_info = ""
+                if formatted_result["detected_language"] and source_lang == "auto":
+                    detected_info = f"\n検出言語: {formatted_result['detected_language']}"
+
+                embed.add_field(
+                    name="📊 翻訳情報",
+                    value=f"言語: {formatted_result['source_language']} → {formatted_result['target_language']}{detected_info}\n"
+                          f"文字数: {formatted_result['character_count']}",
+                    inline=False
+                )
+
+                # フッター設定
+                EmbedBuilder.set_footer_with_user(embed, interaction.user, "Luna Translation")
+
+                # インタラクティブUIを追加
+                view = TranslationView(
+                    self.translation_service,
+                    text,
+                    formatted_result,
+                    interaction.user
+                )
+
+                await interaction.followup.send(embed=embed, view=view)
+
+            else:
+                # 翻訳失敗
+                error_embed = EmbedBuilder.create_error_embed(
+                    "翻訳に失敗しました",
+                    "APIエラーまたはネットワーク接続に問題があります。しばらく時間をおいて再度お試しください。"
+                )
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+        except Exception as e:
+            self.logger.error(f"Translation command error: {e}")
+            error_embed = EmbedBuilder.create_error_embed(
+                "エラー",
+                "翻訳中に予期しないエラーが発生しました。"
+            )
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+    @app_commands.command(name="translation-status", description="翻訳サービスの状態を確認します")
+    async def translation_status(self, interaction: discord.Interaction):
+        """翻訳サービスの状態確認コマンド"""
+        await interaction.response.defer(ephemeral=True)
+
+        try:
+            health_status = await self.translation_service.health_check()
+
+            embed = EmbedBuilder.create_info_embed("🔍 翻訳サービス状態")
+
+            # サービス状態
+            service_status = "✅ 利用可能" if health_status["service_available"] else "❌ 利用不可"
+            embed.add_field(name="サービス状態", value=service_status, inline=True)
+
+            # APIキー設定状態
+            api_status = "✅ 設定済み" if health_status["api_key_configured"] else "❌ 未設定"
+            embed.add_field(name="APIキー", value=api_status, inline=True)
+
+            # API応答状態
+            if health_status.get("api_responsive") is not None:
+                api_response = "✅ 正常" if health_status["api_responsive"] else "❌ 応答なし"
+                embed.add_field(name="API応答", value=api_response, inline=True)
+
+            # 使用量情報
+            if health_status.get("api_usage"):
+                usage = health_status["api_usage"]
+                embed.add_field(
+                    name="使用量",
+                    value=f"使用文字数: {usage.get('character_count', 0):,}\n"
+                          f"使用率: {usage.get('usage_percentage', 0):.1f}%",
+                    inline=True
+                )
+
+            # エラー情報
+            if health_status.get("api_error"):
+                embed.add_field(name="エラー", value=health_status["api_error"], inline=False)
+
+            # 色設定
+            if health_status["service_available"]:
+                embed.color = TranslationUI.COLORS["SUCCESS"]
+            else:
+                embed.color = TranslationUI.COLORS["ERROR"]
+
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            self.logger.error(f"Translation status error: {e}")
+            error_embed = EmbedBuilder.create_error_embed(
+                "状態確認エラー",
+                "サービス状態の確認中にエラーが発生しました。"
+            )
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(TranslationCog(bot))
