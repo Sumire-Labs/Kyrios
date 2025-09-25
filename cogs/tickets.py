@@ -12,7 +12,7 @@ class TicketView(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
 
-    @discord.ui.button(label=f"{UIEmojis.TICKET} チケット作成", style=ButtonStyles.CREATE, custom_id="create_ticket")  # type: ignore
+    @discord.ui.button(label=f"{UIEmojis.TICKET} チケット作成", style=ButtonStyles.CREATE, custom_id="persistent_ticket_create")  # type: ignore
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.defer(ephemeral=True)
 
@@ -106,12 +106,16 @@ class TicketManagementView(discord.ui.View):
         self.bot = bot
         self.ticket_id = ticket_id
 
+        # 動的にcustom_idを設定
+        self.assign_button.custom_id = f"ticket_assign_{ticket_id}"
+        self.close_button.custom_id = f"ticket_close_{ticket_id}"
+
     @discord.ui.button(label="👤 アサイン", style=ButtonStyles.ASSIGN)  # type: ignore
-    async def assign_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
+    async def assign_button(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         await interaction.response.send_modal(AssignModal(self.bot, self.ticket_id))
 
     @discord.ui.button(label="🔒 クローズ", style=ButtonStyles.CLOSE)  # type: ignore
-    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
+    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):  # type: ignore
         if not UserFormatter.has_manage_permissions(interaction.user):
             ticket = await self.bot.database.get_ticket(self.ticket_id)
             if ticket and interaction.user.id != ticket.user_id:
@@ -205,6 +209,28 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot):  # type: ignore
         self.bot = bot
         self.logger = logging.getLogger(__name__)
+
+    async def cog_load(self) -> None:
+        """Cog読み込み時に永続Viewを復元"""
+        await self._restore_persistent_views()
+
+    async def _restore_persistent_views(self):
+        """永続Viewを復元してボットに登録"""
+        try:
+            # チケット作成パネル用のView復元
+            ticket_view = TicketView(self.bot)
+            self.bot.add_view(ticket_view)
+
+            # 既存のオープンチケット用のManagementView復元
+            open_tickets = await self.bot.database.get_all_open_tickets()
+            for ticket in open_tickets:
+                management_view = TicketManagementView(self.bot, ticket.id)
+                self.bot.add_view(management_view)
+
+            self.logger.info(f"Restored persistent views: 1 ticket panel + {len(open_tickets)} management views")
+
+        except Exception as e:
+            self.logger.error(f"Failed to restore persistent views: {e}")
 
     @app_commands.command(name="ticket", description="チケットパネルを設置します")
     @app_commands.default_permissions(manage_guild=True)

@@ -103,6 +103,13 @@ class DatabaseManager:
             result = await session.execute(statement)
             return list(result.scalars().all())
 
+    async def get_all_open_tickets(self) -> List[Ticket]:
+        """すべてのギルドのオープンチケットを取得（永続View復元用）"""
+        async with self.async_session() as session:
+            statement = select(Ticket).where(Ticket.status == TicketStatus.OPEN)
+            result = await session.execute(statement)
+            return list(result.scalars().all())
+
     async def update_ticket(self, ticket_id: int, **kwargs) -> Optional[Ticket]:
         async with self.async_session() as session:
             ticket = await session.get(Ticket, ticket_id)
