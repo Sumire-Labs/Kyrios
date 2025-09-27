@@ -48,7 +48,13 @@ Luna/
 │   ├── music_service.py    # MusicService・MusicPlayer クラス
 │   ├── youtube_extractor.py # YouTube音楽抽出（yt-dlp）
 │   ├── spotify_extractor.py # Spotify API統合・楽曲変換
-│   └── url_detector.py     # URL自動判定・ルーティング
+│   ├── url_detector.py     # URL自動判定・ルーティング
+│   └── constants.py        # 音楽システム定数管理
+├── translation/            # 翻訳システムコア
+│   ├── __init__.py
+│   ├── deepl_extractor.py  # DeepL API統合
+│   ├── translation_service.py # 翻訳サービス・管理クラス
+│   └── constants.py        # 翻訳関連定数（言語コード・UI・制限）
 └── docs/                   # 包括的ドキュメント
     ├── ARCHITECTURE.md
     ├── API_REFERENCE.md
@@ -283,6 +289,46 @@ file_size = UserFormatter.format_file_size(size_bytes)
 3. **新しいPattern**: デザインパターンの追加実装
 4. **新しいObserver**: イベント処理の拡張
 5. **音楽拡張**: 新しい音楽ソースの統合
+6. **翻訳拡張**: 新しい翻訳プロバイダーの統合
+
+### 永続View実装 (v1.0.0新機能)
+
+**永続性問題の根本解決**：
+Discord.pyのView制限により、BOT再起動後にボタンインタラクションが失敗する問題を完全解決。
+
+```python
+class PersistentTicketView(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout=None)  # 永続化設定
+        self.bot = bot
+
+    @discord.ui.button(custom_id="persistent_ticket_create")
+    async def create_ticket(self, interaction, button):
+        # チケット作成処理
+```
+
+**自動復元システム**：
+```python
+async def cog_load(self) -> None:
+    """Cog読み込み時に永続Viewを復元"""
+    await self._restore_persistent_views()
+
+async def _restore_persistent_views(self):
+    # チケット作成パネル復元
+    ticket_view = TicketView(self.bot)
+    self.bot.add_view(ticket_view)
+
+    # 既存オープンチケット管理View復元
+    open_tickets = await self.bot.database.get_all_open_tickets()
+    for ticket in open_tickets:
+        management_view = TicketManagementView(self.bot, ticket.id)
+        self.bot.add_view(management_view)
+```
+
+**利点**：
+- BOT再起動後もボタンが正常動作
+- ユーザビリティの大幅向上
+- メンテナンス時のサービス継続性
 
 ### プラグインアーキテクチャ
 ```python
@@ -291,6 +337,7 @@ factory.register_cog("tickets", TicketsCog)
 factory.register_cog("logging", LoggingCog)
 factory.register_cog("avatar", AvatarCog)
 factory.register_cog("music", MusicCog)        # ✅ 実装完了（Spotify統合済み）
+factory.register_cog("translation", TranslationCog)  # ✅ 実装完了（DeepL統合済み）
 
 # 将来的な拡張
 factory.register_cog("auto_mod", AutoModerationCog)
@@ -300,7 +347,7 @@ factory.register_cog("economy", EconomyCog)
 
 ### 音楽システム設計実装済み
 ```python
-# Spotify統合実装（v0.1.10）
+# Spotify統合実装（v1.0.0）
 class SpotifyExtractor:
     async def spotify_to_youtube(self, spotify_track: Dict[str, Any]) -> Optional[TrackInfo]:
         """SpotifyトラックをYouTube検索で変換"""

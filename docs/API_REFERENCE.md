@@ -19,16 +19,16 @@ Lunaボットで利用可能なすべてのコマンドとその使用方法を�
 # YouTube URL
 /play https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
-# YouTube プレイリスト (v0.1.10+)
+# YouTube プレイリスト
 /play https://www.youtube.com/playlist?list=PLs4Gp5VU4Fv9rGksKf_XXs1aRV7HdqnyK
 
-# Spotify トラック (v0.1.10+)
+# Spotify トラック
 /play https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh
 
-# Spotify プレイリスト (v0.1.10+)
+# Spotify プレイリスト
 /play https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd
 
-# Spotify アルバム (v0.1.10+)
+# Spotify アルバム
 /play https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
 
 # 検索キーワード
@@ -40,8 +40,8 @@ Lunaボットで利用可能なすべてのコマンドとその使用方法を�
 
 ##### 🎵 音楽検索・再生
 - **YouTube統合**: yt-dlp による高品質音楽抽出
-- **Spotify統合**: Spotify API連携・YouTube変換再生 (v0.1.10+)
-- **プレイリスト対応**: YouTube/Spotifyプレイリスト一括追加 (v0.1.10+)
+- **Spotify統合**: Spotify API連携・YouTube変換再生
+- **プレイリスト対応**: YouTube/Spotifyプレイリスト一括追加
 - **自動音声接続**: ユーザーのボイスチャンネルに自動接続
 - **キュー管理**: 複数楽曲の自動キュー追加
 - **ループモード**: 楽曲・キューリピート対応
@@ -160,16 +160,35 @@ Lunaボットで利用可能なすべてのコマンドとその使用方法を�
 ### Ping コマンド
 
 #### `/ping`
-**説明**: ボットのレスポンス時間を測定します
+**説明**: 高度なレイテンシ測定と包括的なシステム状態確認を行います
 
 **使用方法**:
 ```
 /ping
 ```
 
+**機能**:
+- **Discord APIレイテンシ**: WebSocket接続の応答時間
+- **メッセージレスポンス**: インタラクション処理時間
+- **データベースレスポンス**: SQLite操作時間
+- **システムリソース**: CPU使用率・メモリ使用量
+- **EventBus統計**: イベント処理状況・メモリ効率
+- **翻訳サービス状態**: DeepL API接続状況・使用量（機能有効時）
+- **総合パフォーマンス評価**: 平均レイテンシによる総合判定
+
 **出力例**:
 ```
-🏓 Pong! レイテンシ: 45ms
+🏓 Pong! レイテンシ測定結果
+
+🌐 Discord API レイテンシ: ⚡ 45ms
+💬 メッセージレスポンス: ⚡ 123ms
+🗄️ データベースレスポンス: ⚡ 12ms ✅ 正常
+🔧 CPU使用率: 15.2%
+💾 メモリ使用量: 99.8MB
+🌐 シャード情報: シャード: 0, サーバー数: 5
+📊 イベントバス統計: 処理済み: 1,234, メモリ使用: 10/1000
+🌐 翻訳サービス: ✅ 利用可能, 使用率: 2.5%
+📊 総合パフォーマンス: ⚡ 優秀, 平均レイテンシ: 60ms
 ```
 
 **権限**: なし（全ユーザー使用可能）
