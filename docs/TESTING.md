@@ -882,13 +882,60 @@ async def test_database_performance(in_memory_db):
     assert (end_time - start_time) < 1.0  # 1秒以内に完了
 ```
 
-## v0.1.6 新機能のテスト
+### 翻訳機能のテスト
+
+#### TranslationService テスト
+```python
+# tests/unit/test_translation_v100.py
+import pytest
+from unittest.mock import AsyncMock, patch
+
+from translation import TranslationService, DeepLExtractor
+
+
+class TestTranslationService:
+    """翻訳機能のテスト"""
+
+    @pytest.fixture
+    def mock_deepl_extractor(self):
+        extractor = AsyncMock(spec=DeepLExtractor)
+        extractor.translate_text.return_value = {
+            "translated_text": "こんにちは",
+            "source_language": "en",
+            "target_language": "ja",
+            "confidence": 0.95
+        }
+        return extractor
+
+    @pytest.fixture
+    def translation_service(self, mock_deepl_extractor, in_memory_db):
+        return TranslationService(mock_deepl_extractor, in_memory_db)
+
+    @pytest.mark.asyncio
+    async def test_translate_text_success(self, translation_service, mock_deepl_extractor):
+        """翻訳成功テスト"""
+        result = await translation_service.translate("Hello", "ja", 123456, 789012)
+
+        assert result["success"] is True
+        assert result["translated_text"] == "こんにちは"
+        mock_deepl_extractor.translate_text.assert_called_once_with("Hello", "ja", "auto")
+
+    @pytest.mark.asyncio
+    async def test_translate_text_error_handling(self, translation_service, mock_deepl_extractor):
+        """翻訳エラーハンドリングテスト"""
+        mock_deepl_extractor.translate_text.side_effect = Exception("API Error")
+
+        result = await translation_service.translate("Hello", "ja", 123456, 789012)
+
+        assert result["success"] is False
+        assert "API Error" in result["error"]
+
 
 ### 共通ユーティリティ関数のテスト
 
 #### UserFormatter テスト
 ```python
-# tests/unit/test_user_formatter_v016.py
+# tests/unit/test_user_formatter_v100.py
 import pytest
 import discord
 from unittest.mock import MagicMock
@@ -897,7 +944,7 @@ from common import UserFormatter
 
 
 class TestUserFormatterNewFeatures:
-    """v0.1.6で追加された機能のテスト"""
+    """機能のテスト"""
 
     def test_has_manage_permissions_with_admin(self):
         """管理者権限チェックのテスト"""

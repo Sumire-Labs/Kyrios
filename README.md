@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.4.0-blue.svg)
-![Version](https://img.shields.io/badge/version-0.1.15-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MPL--2.0-green.svg)
 
 **Luna**は個人用の高度なDiscord管理BOTです。オーバーエンジニアリングされたアーキテクチャと、最適化されたUX/パフォーマンスを提供します。

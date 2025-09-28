@@ -16,7 +16,7 @@ class PingCog(commands.Cog):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
 
-    @app_commands.command(name="ping", description="高度なレイテンシ測定を行います")
+    @app_commands.command(name="ping", description="デバック用に詳細なレイテンシ測定を行います")
     async def ping(self, interaction: discord.Interaction):
         # Discord APIレイテンシ
         api_latency = round(self.bot.latency * 1000)

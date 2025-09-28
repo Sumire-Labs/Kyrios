@@ -2,7 +2,44 @@
 
 Luna changelog
 
-# Changelog
+## [1.0.0] - 2025-09-24 **STABLE RELEASE**
+
+### **Major Milestone**
+- **Official Release**: Major version upgrade from v0.1.15 → v1.0.0
+- **Production Ready**: Stability and reliability assurance completed
+- **Enterprise-Grade Quality**: Complete realization of over-engineering philosophy
+
+### Added
+- **Pterodactyl Support**
+  - `requirements.txt` - Python 3.11+ compatible dependency management
+
+- **Persistent View Implementation**
+  - Ticket buttons function normally after bot restart
+  - `cog_load()` - Automatic view restoration system
+  - `get_all_open_tickets()` - Database method for persistence
+  - Dynamic custom ID generation to avoid conflicts
+
+- **Performance Optimization Foundation**
+  - EventBus history size adjustment (96→10) for reduced memory usage
+  - Duplicate code elimination through translation feature integration
+  - Centralized system status monitoring (ping integration)
+
+### Changed
+- **Major UI/UX Improvements**
+  - Removed reverse translation button from translation feature → Simplified
+  - Removed `/translation-status` command → Integrated into `/ping`
+  - More intuitive interaction design
+
+- **Architecture Maturation**
+  - Complete unification of dependency injection patterns
+  - Resolved direct `Provide` object reference issues
+  - Established consistent implementation patterns across all Cogs
+
+### Fixed
+- **Root Resolution of Persistence Issues**
+  - Complete elimination of interaction failures during bot restart
+  - Automation of view restoration system
+  - Ensured continuity of ticket management
 
 ## [0.1.15] - 2025-09-24
 

@@ -5,7 +5,7 @@ description = "Luna - Advanced Discord Administration Bot"
 
 [status]
 type = "game"  # game, watching, listening, streaming, custom
-message = "v0.1.15"
+message = "v1.0.0"
 streaming_url = ""  # Twitch URLのみ有効 (typeがstreamingの場合)
 
 [database]
