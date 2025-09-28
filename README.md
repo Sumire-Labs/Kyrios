@@ -1,4 +1,4 @@
-# Luna Bot
+# Luna Bot - Pterodactyl Version
 
 ![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)
 ![Discord.py](https://img.shields.io/badge/discord.py-2.4.0-blue.svg)
